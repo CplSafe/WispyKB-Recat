@@ -1,0 +1,97 @@
+/**
+ * 项目级全局样式
+ * 主题由 @semi-bot/semi-theme-volcano_engine 提供，此处仅放非主题相关的全局样式
+ */
+
+/* 防止 Modal 打开时 body overflow:hidden 导致页面抖动 */
+html, body {
+  overflow: hidden;
+  height: 100%;
+  margin: 0;
+}
+
+/* 修复 Semi Nav 侧边栏：footer 固定底部，body 区域可滚动 */
+.semi-navigation-vertical .semi-navigation-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.semi-navigation-vertical .semi-navigation-header-list-outer {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.semi-navigation-vertical .semi-navigation-list-wrapper {
+  flex: 1;
+  overflow: auto;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--semi-color-fill-2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--semi-color-fill-1);
+}
+
+/* Semi Sidebar.Container：固定在内容区域右侧，覆盖整个内容高度 */
+/* 外层容器透明，背景和阴影放在内部动画元素上 */
+.semi-resizable-resizable:has(.semi-sidebar-container) {
+  position: fixed !important;
+  top: 52px; /* Header 高度 */
+  right: 0;
+  bottom: 0;
+  left: auto !important;
+  z-index: 100;
+  height: calc(100vh - 52px) !important;
+  background: transparent !important;
+  pointer-events: none;
+}
+
+.semi-resizable-resizable:has(.semi-sidebar-container) .semi-sidebar-container {
+  height: 100% !important;
+  max-height: calc(100vh - 52px) !important;
+  overflow: hidden;
+  background: var(--semi-color-bg-0);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+}
+
+/* Sidebar 内容区域可滚动 */
+.semi-resizable-resizable:has(.semi-sidebar-container) .semi-sidebar-container-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 左侧拖拽手柄定位修正 */
+.semi-resizable-resizable:has(.semi-sidebar-container) .semi-resizable-resizableHandler-left {
+  position: fixed !important;
+  left: auto !important;
+  right: calc(100% - 5px);
+  top: 52px;
+  height: calc(100vh - 52px) !important;
+  z-index: 101;
+  pointer-events: auto;
+}
+
+/* 打印 */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

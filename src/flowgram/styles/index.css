@@ -4,6 +4,13 @@
  */
 
 :root {
+  /* Coze brand colors */
+  --coze-brand-1: 255, 227, 230;
+  --coze-brand-1-alpha: 0.5;
+  --coze-brand-5: 219, 25, 51;
+  --coze-green-5: 0, 178, 60;
+  --coze-fg-7: 255, 255, 255;
+
   /* Port colors */
   --g-workflow-port-color-primary: #4d53e8;
   --g-workflow-port-color-secondary: #9197f1;

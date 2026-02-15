@@ -1,23 +1,26 @@
 import React, { useState, useEffect, useRef, useCallback, Component, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Input, Button, message, Drawer, Space, Modal, Image } from 'antd';
+// Semi-UI 组件
+import { Button, Toast, SideSheet, Space, Modal, Input, Image, AIChatInput, AIChatDialogue } from '@douyinfe/semi-ui';
+// Semi-UI 图标
 import {
-  SendOutlined,
-  CopyOutlined,
-  LikeOutlined,
-  DislikeOutlined,
-  CloseOutlined,
-  PlusOutlined,
-  MessageOutlined,
-  DeleteOutlined,
-  AudioOutlined,
-  AudioMutedOutlined,
-  MenuOutlined,
-  LeftOutlined,
-  RightOutlined,
-  ZoomInOutlined,
-  ZoomOutOutlined,
-} from '@ant-design/icons';
+  IconSend,
+  IconCopy,
+  IconLikeThumb,
+  IconDislikeThumb,
+  IconClose,
+  IconPlus,
+  IconComment,
+  IconDelete,
+  IconMicrophone,
+  IconMicrophoneOff,
+  IconMenu,
+  IconArrowLeft,
+  IconArrowRight,
+  IconExpand,
+  IconShrink,
+  IconRefresh,
+} from '@douyinfe/semi-icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import styles from './SharePage.module.css';
@@ -78,9 +81,7 @@ const MarkdownTextOnly: React.FC<{ content: string }> = ({ content }) => {
                 onClick={() => {
                   Modal.info({
                     title: '图片预览',
-                    icon: null,
                     width: '90vw',
-                    centered: true,
                     content: (
                       <img
                         src={href}
@@ -151,9 +152,7 @@ const ImageLinks: React.FC<{ content: string }> = ({ content }) => {
   const handleImageClick = (url: string) => {
     Modal.info({
       title: '图片预览',
-      icon: null,
       width: '90vw',
-      centered: true,
       content: (
         <img
           src={url}
@@ -346,6 +345,8 @@ function SharePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<any>(null);
+  const aiChatInputRef = useRef<any>(null);
+  const dialogueRef = useRef<any>(null);
   // 流式消息内容缓存，避免频繁更新 state
   const streamingContentRef = useRef<Record<string, string>>({});
 
@@ -363,6 +364,36 @@ function SharePage() {
 
   // Check if should show welcome message: always show when appInfo has welcome_message
   const showWelcomeMessage = !!appInfo?.welcome_message;
+
+  // AIChatDialogue 角色配置
+  const roleConfig = useMemo(() => ({
+    user: {
+      name: '我',
+      avatar: '',
+    },
+    assistant: {
+      name: appInfo?.name || '智能助手',
+      avatar: systemConfig?.logo || '',
+    },
+  }), [appInfo?.name, systemConfig?.logo]);
+
+  // 将当前消息转换为 AIChatDialogue 格式
+  const dialogueChats = useMemo(() => {
+    return currentMessages.map(msg => {
+      // 处理流式输出中的消息
+      const streamingContent = streamingContentRef.current[msg.id];
+      const content = streamingContent !== undefined ? streamingContent : msg.content;
+
+      // AIChatDialogue Message 格式
+      return {
+        id: msg.id,
+        role: msg.role, // 'user' | 'assistant'
+        content: content, // 文本内容
+        status: msg.role === 'assistant' && streamingContent !== undefined ? 'streaming' : 'completed',
+        created_at: msg.created_at,
+      };
+    });
+  }, [currentMessages]);
 
   // Scroll to bottom when messages change (但初次加载不滚动)
   useEffect(() => {
@@ -511,7 +542,7 @@ function SharePage() {
   const startRecording = useCallback(async () => {
     // 检查浏览器是否支持
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      message.error('您的浏览器不支持语音输入，请使用 Chrome 或 Safari');
+      Toast.error('您的浏览器不支持语音输入，请使用 Chrome 或 Safari');
       return;
     }
 
@@ -536,11 +567,11 @@ function SharePage() {
       setIsRecording(true);
     } catch (err: any) {
       if (err.name === 'NotAllowedError') {
-        message.error('请允许麦克风权限以使用语音输入');
+        Toast.error('请允许麦克风权限以使用语音输入');
       } else if (err.name === 'NotReadableError') {
-        message.error('麦克风被其他应用占用，请稍后再试');
+        Toast.error('麦克风被其他应用占用，请稍后再试');
       } else {
-        message.error('无法访问麦克风');
+        Toast.error('无法访问麦克风');
       }
       console.error(err);
     }
@@ -568,12 +599,12 @@ function SharePage() {
       };
 
       recognition.onerror = () => {
-        message.warning('语音识别失败，请重试');
+        Toast.warning('语音识别失败，请重试');
       };
 
       recognition.start();
     } else {
-      message.warning('您的浏览器不支持语音识别');
+      Toast.warning('您的浏览器不支持语音识别');
     }
   };
 
@@ -597,7 +628,7 @@ function SharePage() {
       speechSynthesis.speak(utterance);
       setIsPlaying(true);
     } else {
-      message.warning('您的浏览器不支持语音播放');
+      Toast.warning('您的浏览器不支持语音播放');
     }
   }, [isPlaying]);
 
@@ -614,9 +645,9 @@ function SharePage() {
 
     try {
       document.execCommand('copy');
-      message.success('已复制');
+      Toast.success('已复制');
     } catch (err) {
-      message.error('复制失败');
+      Toast.error('复制失败');
     }
 
     document.body.removeChild(textArea);
@@ -653,7 +684,7 @@ function SharePage() {
       })
     }).catch(() => {});
 
-    message.success(feedbackType === 'like' ? '已点赞' : '已反馈');
+    Toast.success(feedbackType === 'like' ? '已点赞' : '已反馈');
   }, [shareId, userFeedbacks]);
 
   // Open feedback drawer
@@ -676,12 +707,12 @@ function SharePage() {
         comment: feedbackComment
       })
     }).then(() => {
-      message.success('感谢反馈');
+      Toast.success('感谢反馈');
       setFeedbackDrawer(false);
       setFeedbackComment('');
       setSelectedMessageId(null);
     }).catch(() => {
-      message.error('提交失败');
+      Toast.error('提交失败');
     });
   }, [shareId, selectedMessageId, feedbackComment]);
 
@@ -1066,7 +1097,7 @@ function SharePage() {
       // 只在没有收到任何内容时才处理错误
       if (!hasReceivedContent) {
         console.error('Send error:', err);
-        message.error(err.message || '发送失败');
+        Toast.error(err.message || '发送失败');
         setConversations(prev => {
           const updated = prev.map(c => {
             if (c.id === targetConvId) {
@@ -1082,7 +1113,10 @@ function SharePage() {
       // 清理流式缓存
       delete streamingContentRef.current[assistantId];
       setIsLoading(false);
-      inputRef.current?.focus();
+      // 清空 AIChatInput 输入框
+      if (aiChatInputRef.current) {
+        aiChatInputRef.current.setContent('');
+      }
     }
   }, [
     inputValue,
@@ -1121,15 +1155,15 @@ function SharePage() {
       {/* Mobile Header */}
       <header className={styles.mobileHeader}>
         <Button
-          type="text"
-          icon={<MenuOutlined />}
+          type="tertiary"
+          icon={<IconMenu />}
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className={styles.menuBtn}
         />
         <h1 className={styles.headerTitle}>{appInfo?.name || '智能助手'}</h1>
         <Button
-          type="text"
-          icon={<PlusOutlined />}
+          type="tertiary"
+          icon={<IconPlus />}
           onClick={createNewConversation}
           className={styles.newChatBtn}
         >
@@ -1149,8 +1183,8 @@ function SharePage() {
           <span className={styles.sidebarTitle}>{appInfo?.name || '智能助手'}</span>
           {/* 移动端关闭按钮 */}
           <Button
-            type="text"
-            icon={<CloseOutlined />}
+            type="tertiary"
+            icon={<IconClose />}
             onClick={() => setSidebarCollapsed(true)}
             className={styles.sidebarCloseBtn}
           />
@@ -1160,7 +1194,7 @@ function SharePage() {
         <div className={styles.sidebarNewChat}>
           <Button
             type="primary"
-            icon={<PlusOutlined />}
+            icon={<IconPlus />}
             onClick={createNewConversation}
             block
           >
@@ -1181,9 +1215,9 @@ function SharePage() {
                 {new Date(conv.created_at).toLocaleDateString()}
               </div>
               <Button
-                type="text"
+                type="tertiary"
                 size="small"
-                icon={<DeleteOutlined />}
+                icon={<IconDelete />}
                 onClick={(e) => {
                   e.stopPropagation();
                   deleteConversation(conv.id);
@@ -1236,166 +1270,170 @@ function SharePage() {
             </div>
           )}
 
-          {/* Conversation messages */}
-          {currentMessages.map((msg) => {
-            // 调试：记录正在渲染的消息
-            console.log('[SharePage] Rendering message:', msg.id, msg.role);
-            console.log('[SharePage] Content length:', msg.content.length);
-            console.log('[SharePage] Content preview:', msg.content.substring(0, 100) + '...');
-            console.log('[SharePage] Has image link pattern:', msg.content.includes('[查看流程图](') || msg.content.includes('[查看') || msg.content.includes('流程图'));
+          {/* AIChatDialogue 对话展示 */}
+          <AIChatDialogue
+            ref={dialogueRef}
+            chats={dialogueChats}
+            roleConfig={roleConfig}
+            mode="bubble"
+            align="leftRight"
+            className={styles.aiDialogue}
+            // 消息复制
+            onMessageCopy={(message) => {
+              const content = typeof message.content === 'string' ? message.content : '';
+              handleCopy(content, { stopPropagation: () => {} } as any);
+            }}
+            // 点赞
+            onMessageGoodFeedback={(message) => {
+              handleFeedback(message.id, 'like', { stopPropagation: () => {} } as any);
+            }}
+            // 点踩
+            onMessageBadFeedback={(message) => {
+              handleFeedback(message.id, 'dislike', { stopPropagation: () => {} } as any);
+            }}
+            // Markdown 渲染配置
+            markdownRenderProps={{
+              // 自定义 Markdown 渲染以支持图片预览等功能
+              components: {
+                a: ({ href, children }: any) => {
+                  const text = children?.toString() || '';
+                  // 如果是图片链接，显示为可点击的图片
+                  if (href && (text.includes('查看') || text.includes('流程图') || text.includes('图片'))) {
+                    return (
+                      <img
+                        src={href}
+                        alt={text}
+                        className={styles.inlineImage}
+                        loading="lazy"
+                        onClick={() => {
+                          const images = extractImagesFromContent(typeof href === 'string' ? href : '');
+                          if (images.length > 0) {
+                            setCurrentImageList(images);
+                            setCurrentImageIndex(0);
+                            setImageScale(1);
+                            setImagePreviewOpen(true);
+                          }
+                        }}
+                      />
+                    );
+                  }
+                  return (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
+                      {children}
+                    </a>
+                  );
+                },
+                img: ({ src, alt }: any) => (
+                  <img
+                    src={src}
+                    alt={alt || '图片'}
+                    className={styles.inlineImage}
+                    loading="lazy"
+                  />
+                ),
+              }
+            }}
+            // 自定义操作按钮渲染 - 添加朗读和反馈按钮
+            dialogueRenderConfig={{
+              renderDialogueAction: (props) => {
+                const { defaultActions, message } = props as any;
+                const msg = message as any;
+                const content = typeof msg?.content === 'string' ? msg.content : '';
 
-            return (
-            <div
-              key={msg.id}
-              className={`${styles.message} ${msg.role === 'user' ? styles.userMessage : styles.assistantMessage}`}
-            >
-              {msg.role === 'assistant' && systemConfig?.logo && (
-                <img src={systemConfig.logo} alt="" className={styles.messageAvatar} />
-              )}
-              <div className={styles.bubble}>
-                {msg.role === 'assistant' ? (
-                  msg.content || streamingContentRef.current[msg.id] ? (
-                    <ErrorBoundary>
-                      {/* 检查是否正在流式输出 */}
-                      {streamingContentRef.current[msg.id] !== undefined ? (
-                        // 流式输出时只显示纯文本
-                        <div className={styles.streamingText}>
-                          {(streamingContentRef.current[msg.id] || msg.content).split('\n').map((line, i) => (
-                            <p key={i} className={styles.paragraph}>{line || '\u00A0'}</p>
-                          ))}
-                        </div>
-                      ) : (
-                        // 流式结束后渲染完整的 Markdown
-                        <MarkdownTextOnly content={msg.content} />
-                      )}
-                    </ErrorBoundary>
-                  ) : (
-                    <div className={styles.typingIndicator}>
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
-                  )
-                ) : (
-                  <div className={styles.userText}>{msg.content}</div>
-                )}
-
-                {/* Action buttons for assistant messages */}
-                {msg.role === 'assistant' && msg.content && (
+                return (
                   <div className={styles.messageActions}>
                     <Space size={2}>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<CopyOutlined />}
-                        onClick={(e) => handleCopy(msg.content, e)}
-                        className={styles.actionBtn}
-                        title="复制"
-                      />
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<AudioOutlined />}
-                        onClick={() => speakText(msg.content)}
-                        className={styles.actionBtn}
-                        title="朗读"
-                      />
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<LikeOutlined />}
-                        onClick={(e) => handleFeedback(msg.id, 'like', e)}
-                        className={`${styles.actionBtn} ${userFeedbacks[msg.id] === 'like' ? styles.active : ''}`}
-                        title="点赞"
-                      />
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<DislikeOutlined />}
-                        onClick={(e) => handleFeedback(msg.id, 'dislike', e)}
-                        className={`${styles.actionBtn} ${userFeedbacks[msg.id] === 'dislike' ? styles.active : ''}`}
-                        title="点踩"
-                      />
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<MessageOutlined />}
-                        onClick={(e) => openFeedbackDrawer(msg.id, e)}
-                        className={styles.actionBtn}
-                        title="反馈"
-                      />
+                      {/* 复制按钮 (使用默认) */}
+                      {defaultActions}
+                      {/* 朗读按钮 */}
+                      {msg?.role === 'assistant' && content && (
+                        <Button
+                          type="tertiary"
+                          size="small"
+                          icon={<IconMicrophone />}
+                          onClick={() => speakText(content)}
+                          className={styles.actionBtn}
+                          title="朗读"
+                        />
+                      )}
+                      {/* 反馈按钮 */}
+                      {msg?.role === 'assistant' && content && (
+                        <Button
+                          type="tertiary"
+                          size="small"
+                          icon={<IconComment />}
+                          onClick={(e) => openFeedbackDrawer(msg.id, e)}
+                          className={styles.actionBtn}
+                          title="反馈"
+                        />
+                      )}
                     </Space>
                   </div>
-                )}
-              </div>
-              {msg.role === 'user' && (
-                <div className={styles.userAvatar}>我</div>
-              )}
-            </div>
-            );
-          })}
+                );
+              }
+            }}
+          />
           <div ref={messagesEndRef} />
         </div>
 
         {/* Input area */}
         <div className={styles.inputContainer}>
-          <div className={styles.inputWrapper}>
-            {/* Voice Input Button */}
-            <Button
-              type="text"
-              icon={isRecording ? <AudioMutedOutlined /> : <AudioOutlined />}
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`${styles.voiceBtn} ${isRecording ? styles.recording : ''}`}
-              title={isRecording ? '停止录音' : '语音输入'}
-            />
-            <TextArea
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="输入您的问题..."
-              autoSize={{ minRows: 1, maxRows: 4 }}
-              className={styles.input}
-              disabled={isLoading}
-            />
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              onClick={() => handleSend()}
-              disabled={!inputValue.trim() || isLoading}
-              className={styles.sendBtn}
-              title="发送"
-            >
-              <span className={styles.sendBtnText}>发送</span>
-            </Button>
-          </div>
-          <div className={styles.footerHint}>
-            <span className={styles.enterHint}>
-              Enter 发送，Shift + Enter 换行
-            </span>
-            <span className={styles.voiceHint}>
-              支持语音输入
-            </span>
-          </div>
+          <AIChatInput
+            ref={aiChatInputRef}
+            placeholder="输入您的问题..."
+            onContentChange={(content) => {
+              // content 是数组，提取文本内容
+              const text = content?.find((item: any) => item.type === 'text')?.text || '';
+              setInputValue(text);
+            }}
+            onMessageSend={async (content) => {
+              // 从 AIChatInput 的 content 中提取文本
+              const text = content?.find((item: any) => item.type === 'text')?.text || '';
+              if (text.trim()) {
+                await handleSend(text);
+              }
+            }}
+            disabled={isLoading}
+            generating={isLoading}
+            onStopGenerate={() => {
+              // 停止生成的逻辑
+              setIsLoading(false);
+            }}
+            renderActionArea={(props: any) => {
+              // 添加语音输入按钮到操作区域
+              return (
+                <div className={props.className}>
+                  <div style={{ display: 'flex', alignItems: 'center' }} key="voice">
+                    <Button
+                      type="tertiary"
+                      icon={isRecording ? <IconMicrophoneOff /> : <IconMicrophone />}
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`${styles.voiceBtn} ${isRecording ? styles.recording : ''}`}
+                      title={isRecording ? '停止录音' : '语音输入'}
+                      style={{ borderRadius: '50%' }}
+                    />
+                  </div>
+                  {props.menuItem}
+                </div>
+              );
+            }}
+            style={{ width: '100%' }}
+            className={styles.aiInput}
+          />
         </div>
       </main>
 
-      {/* Feedback Drawer */}
-      <Drawer
+      {/* Feedback SideSheet */}
+      <SideSheet
         title="意见反馈"
         placement="bottom"
-        onClose={() => setFeedbackDrawer(false)}
-        open={feedbackDrawer}
+        visible={feedbackDrawer}
+        onCancel={() => setFeedbackDrawer(false)}
         size="large"
         styles={{
           body: { padding: '16px' }
         }}
-        closeIcon={<CloseOutlined />}
+        closeIcon={<IconClose />}
       >
         <div className={styles.feedbackContent}>
           <TextArea
@@ -1414,7 +1452,7 @@ function SharePage() {
             </Button>
           </div>
         </div>
-      </Drawer>
+      </SideSheet>
 
       {/* Image Preview Modal */}
       <Modal
@@ -1423,7 +1461,7 @@ function SharePage() {
         footer={null}
         width="90vw"
         style={{ top: 20 }}
-        closeIcon={<CloseOutlined style={{ color: '#fff', fontSize: 24 }} />}
+        closeIcon={<IconClose style={{ color: '#fff', fontSize: 24 }} />}
         className={styles.imagePreviewModal}
         title={
           <div className={styles.imagePreviewHeader}>
@@ -1436,14 +1474,14 @@ function SharePage() {
           <div className={styles.imageToolbar}>
             <Space size="middle">
               <Button
-                icon={<ZoomOutOutlined />}
+                icon={<IconShrink />}
                 onClick={zoomOut}
                 disabled={imageScale <= 0.5}
                 title="缩小 (-)"
               />
               <span className={styles.zoomLevel}>{Math.round(imageScale * 100)}%</span>
               <Button
-                icon={<ZoomInOutlined />}
+                icon={<IconExpand />}
                 onClick={zoomIn}
                 disabled={imageScale >= 3}
                 title="放大 (+)"
@@ -1457,7 +1495,7 @@ function SharePage() {
             </Space>
             <Space size="middle">
               <Button
-                icon={<LeftOutlined />}
+                icon={<IconArrowLeft />}
                 onClick={goToPrevImage}
                 disabled={currentImageList.length <= 1}
                 title="上一张 (←)"
@@ -1470,7 +1508,7 @@ function SharePage() {
                 title="下一张 (→)"
               >
                 下一张
-                <RightOutlined />
+                <IconArrowRight />
               </Button>
             </Space>
           </div>

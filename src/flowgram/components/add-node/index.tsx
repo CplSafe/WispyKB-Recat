@@ -17,8 +17,13 @@ export const AddNode = (props: { disabled: boolean }) => {
     <Button
       data-testid="demo.free-layout.add-node"
       icon={<IconPlus />}
-      color="highlight"
-      style={{ backgroundColor: 'rgba(171,181,255,0.3)', borderRadius: '8px' }}
+      type="tertiary"
+      style={{
+        backgroundColor: 'rgba(167, 139, 250, 0.15)',
+        borderRadius: '8px',
+        color: '#7c3aed',
+        border: 'none',
+      }}
       disabled={props.disabled}
       onClick={(e) => {
         const rect = e.currentTarget.getBoundingClientRect();

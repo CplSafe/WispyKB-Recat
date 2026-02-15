@@ -6,30 +6,26 @@ import {
   Space,
   Button,
   Select,
-  DatePicker,
   Typography,
   Row,
   Col,
-  Statistic,
   Tabs,
   Modal,
-  message,
-} from 'antd';
+  Toast,
+} from '@douyinfe/semi-ui';
 import {
-  HistoryOutlined,
-  UserOutlined,
-  EyeOutlined,
-  ReloadOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ClockCircleOutlined,
-} from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+  IconHistory,
+  IconUser,
+  IconEyeOpened,
+  IconRefresh,
+  IconTickCircle,
+  IconCrossCircleStroked,
+  IconClock,
+} from '@douyinfe/semi-icons';
 import dayjs from 'dayjs';
 import api from '../../lib/api';
 
-const { Text } = Typography;
-const { RangePicker } = DatePicker;
+const { Text, Title } = Typography;
 
 interface AuditLog {
   id: string;
@@ -74,16 +70,14 @@ const actionMap: Record<string, { text: string; color: string }> = {
   create: { text: '创建', color: 'green' },
   update: { text: '更新', color: 'blue' },
   delete: { text: '删除', color: 'red' },
-  view: { text: '查看', color: 'default' },
+  view: { text: '查看', color: 'grey' },
   login: { text: '登录', color: 'green' },
-  logout: { text: '登出', color: 'default' },
+  logout: { text: '登出', color: 'grey' },
   upload: { text: '上传', color: 'blue' },
   download: { text: '下载', color: 'blue' },
 };
 
 function AuditLogPage() {
-  const [messageApi, contextHolder] = message.useMessage();
-
   const [activeTab, setActiveTab] = useState('audit');
 
   // 审计日志
@@ -129,7 +123,7 @@ function AuditLogPage() {
       setAuditPage(page);
     } catch (error) {
       console.error('Failed to fetch audit logs:', error);
-      messageApi.error('获取审计日志失败');
+      Toast.error('获取审计日志失败');
     } finally {
       setAuditLoading(false);
     }
@@ -146,7 +140,7 @@ function AuditLogPage() {
       setOperatePage(page);
     } catch (error) {
       console.error('Failed to fetch operate logs:', error);
-      messageApi.error('获取操作日志失败');
+      Toast.error('获取操作日志失败');
     } finally {
       setOperateLoading(false);
     }
@@ -163,7 +157,7 @@ function AuditLogPage() {
       setLoginPage(page);
     } catch (error) {
       console.error('Failed to fetch login logs:', error);
-      messageApi.error('获取登录日志失败');
+      Toast.error('获取登录日志失败');
     } finally {
       setLoginLoading(false);
     }
@@ -187,15 +181,15 @@ function AuditLogPage() {
   }, [filters]);
 
   // 审计日志表格列
-  const auditColumns: ColumnsType<AuditLog> = [
+  const auditColumns = [
     {
       title: '操作人',
       dataIndex: 'username',
       key: 'username',
       width: 120,
-      render: (text) => (
+      render: (text: string) => (
         <Space>
-          <UserOutlined style={{ color: '#1890ff' }} />
+          <IconUser style={{ color: 'var(--semi-color-primary)' }} />
           {text}
         </Space>
       ),
@@ -205,8 +199,8 @@ function AuditLogPage() {
       dataIndex: 'action',
       key: 'action',
       width: 100,
-      render: (text) => {
-        const info = actionMap[text] || { text, color: 'default' };
+      render: (text: string) => {
+        const info = actionMap[text] || { text, color: 'grey' };
         return <Tag color={info.color}>{info.text}</Tag>;
       },
     },
@@ -215,31 +209,32 @@ function AuditLogPage() {
       dataIndex: 'entity_type',
       key: 'entity_type',
       width: 120,
-      render: (text) => text || '-',
+      render: (text: string) => text || '-',
     },
     {
       title: 'IP地址',
       dataIndex: 'ip_address',
       key: 'ip_address',
       width: 140,
-      render: (text) => text || '-',
+      render: (text: string) => text || '-',
     },
     {
       title: '操作时间',
       dataIndex: 'created_at',
       key: 'created_at',
       width: 180,
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
+      render: (text: string) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
       title: '详情',
       key: 'details',
       width: 80,
-      render: (_, record) => (
+      render: (_: any, record: AuditLog) => (
         <Button
-          type="link"
+          type="tertiary"
+          theme="borderless"
           size="small"
-          icon={<EyeOutlined />}
+          icon={<IconEyeOpened />}
           onClick={() => showLogDetails(record)}
         >
           查看
@@ -249,7 +244,7 @@ function AuditLogPage() {
   ];
 
   // 操作日志表格列
-  const operateColumns: ColumnsType<OperateLog> = [
+  const operateColumns = [
     {
       title: '操作人',
       dataIndex: 'username',
@@ -273,7 +268,7 @@ function AuditLogPage() {
       dataIndex: 'request_method',
       key: 'request_method',
       width: 80,
-      render: (text) => (
+      render: (text: string) => (
         <Tag color={text === 'GET' ? 'green' : text === 'POST' ? 'blue' : 'orange'}>
           {text}
         </Tag>
@@ -284,14 +279,14 @@ function AuditLogPage() {
       dataIndex: 'status',
       key: 'status',
       width: 80,
-      render: (status) =>
+      render: (status: number) =>
         status === 0 ? (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            成功
+          <Tag color="green">
+            <IconTickCircle size="small" /> 成功
           </Tag>
         ) : (
-          <Tag icon={<CloseCircleOutlined />} color="error">
-            失败
+          <Tag color="red">
+            <IconCrossCircleStroked size="small" /> 失败
           </Tag>
         ),
     },
@@ -300,19 +295,19 @@ function AuditLogPage() {
       dataIndex: 'execute_time',
       key: 'execute_time',
       width: 100,
-      render: (time) => (time ? `${time}ms` : '-'),
+      render: (time?: number) => (time ? `${time}ms` : '-'),
     },
     {
       title: '操作时间',
       dataIndex: 'created_at',
       key: 'created_at',
       width: 180,
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
+      render: (text: string) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
     },
   ];
 
   // 登录日志表格列
-  const loginColumns: ColumnsType<LoginLog> = [
+  const loginColumns = [
     {
       title: '用户名',
       dataIndex: 'username',
@@ -324,14 +319,14 @@ function AuditLogPage() {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status) =>
+      render: (status: number) =>
         status === 0 ? (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            成功
+          <Tag color="green">
+            <IconTickCircle size="small" /> 成功
           </Tag>
         ) : (
-          <Tag icon={<CloseCircleOutlined />} color="error">
-            失败
+          <Tag color="red">
+            <IconCrossCircleStroked size="small" /> 失败
           </Tag>
         ),
     },
@@ -345,15 +340,14 @@ function AuditLogPage() {
       title: '错误信息',
       dataIndex: 'error_msg',
       key: 'error_msg',
-      ellipsis: true,
-      render: (text) => text || '-',
+      render: (text?: string) => text || '-',
     },
     {
       title: '登录时间',
       dataIndex: 'login_at',
       key: 'login_at',
       width: 180,
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
+      render: (text: string) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
     },
   ];
 
@@ -363,16 +357,16 @@ function AuditLogPage() {
       width: 600,
       content: (
         <div style={{ marginTop: 16 }}>
-          <p><strong>操作人:</strong> {record.username}</p>
-          <p><strong>操作类型:</strong> {record.action}</p>
-          <p><strong>实体类型:</strong> {record.entity_type || '-'}</p>
-          <p><strong>实体ID:</strong> {record.entity_id || '-'}</p>
-          <p><strong>IP地址:</strong> {record.ip_address || '-'}</p>
-          <p><strong>操作时间:</strong> {dayjs(record.created_at).format('YYYY-MM-DD HH:mm:ss')}</p>
+          <p><Text strong>操作人:</Text> {record.username}</p>
+          <p><Text strong>操作类型:</Text> {record.action}</p>
+          <p><Text strong>实体类型:</Text> {record.entity_type || '-'}</p>
+          <p><Text strong>实体ID:</Text> {record.entity_id || '-'}</p>
+          <p><Text strong>IP地址:</Text> {record.ip_address || '-'}</p>
+          <p><Text strong>操作时间:</Text> {dayjs(record.created_at).format('YYYY-MM-DD HH:mm:ss')}</p>
           {record.changes && (
             <p>
-              <strong>变更内容:</strong>
-              <pre style={{ marginTop: 8, padding: 8, background: '#f5f5f5', borderRadius: 4 }}>
+              <Text strong>变更内容:</Text>
+              <pre style={{ marginTop: 8, padding: 8, background: 'var(--semi-color-bg-2)' }}>
                 {JSON.stringify(record.changes, null, 2)}
               </pre>
             </p>
@@ -382,165 +376,182 @@ function AuditLogPage() {
     });
   };
 
-  const tabItems = [
+  const tabList = [
     {
-      key: 'audit',
+      itemKey: 'audit',
       label: (
-        <span>
-          <HistoryOutlined />
-          审计日志
-        </span>
-      ),
-      children: (
-        <>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={8}>
-              <Statistic
-                title="今日操作"
-                value={stats.today_count}
-                prefix={<ClockCircleOutlined />}
-                styles={{ content: { color: '#3f8600' } }}
-              />
-            </Col>
-            <Col span={8}>
-              <Statistic
-                title="本周操作"
-                value={stats.week_count}
-                prefix={<HistoryOutlined />}
-                styles={{ content: { color: '#1890ff' } }}
-              />
-            </Col>
-          </Row>
-
-          <Space style={{ marginBottom: 16 }}>
-            <Select
-              style={{ width: 150 }}
-              placeholder="操作类型"
-              allowClear
-              value={filters.action}
-              onChange={(value) => setFilters({ ...filters, action: value })}
-            >
-              <Select.Option value="create">创建</Select.Option>
-              <Select.Option value="update">更新</Select.Option>
-              <Select.Option value="delete">删除</Select.Option>
-              <Select.Option value="view">查看</Select.Option>
-              <Select.Option value="login">登录</Select.Option>
-              <Select.Option value="logout">登出</Select.Option>
-            </Select>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => fetchAuditLogs(1)}
-            >
-              刷新
-            </Button>
-          </Space>
-
-          <Table
-            columns={auditColumns}
-            dataSource={auditLogs}
-            rowKey="id"
-            loading={auditLoading}
-            pagination={{
-              current: auditPage,
-              pageSize: 20,
-              total: auditTotal,
-              onChange: (page) => fetchAuditLogs(page),
-            }}
-          />
-        </>
+        <Text>
+          <IconHistory />
+          {' '}审计日志
+        </Text>
       ),
     },
     {
-      key: 'operate',
+      itemKey: 'operate',
       label: (
-        <span>
-          <EyeOutlined />
-          操作日志
-        </span>
-      ),
-      children: (
-        <>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => fetchOperateLogs(1)}
-            style={{ marginBottom: 16 }}
-          >
-            刷新
-          </Button>
-          <Table
-            columns={operateColumns}
-            dataSource={operateLogs}
-            rowKey="id"
-            loading={operateLoading}
-            pagination={{
-              current: operatePage,
-              pageSize: 20,
-              total: operateTotal,
-              onChange: (page) => fetchOperateLogs(page),
-            }}
-          />
-        </>
+        <Text>
+          <IconEyeOpened />
+          {' '}操作日志
+        </Text>
       ),
     },
     {
-      key: 'login',
+      itemKey: 'login',
       label: (
-        <span>
-          <UserOutlined />
-          登录日志
-        </span>
-      ),
-      children: (
-        <>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => fetchLoginLogs(1)}
-            style={{ marginBottom: 16 }}
-          >
-            刷新
-          </Button>
-          <Table
-            columns={loginColumns}
-            dataSource={loginLogs}
-            rowKey="id"
-            loading={loginLoading}
-            pagination={{
-              current: loginPage,
-              pageSize: 20,
-              total: loginTotal,
-              onChange: (page) => fetchLoginLogs(page),
-            }}
-          />
-        </>
+        <Text>
+          <IconUser />
+          {' '}登录日志
+        </Text>
       ),
     },
   ];
 
   return (
     <>
-      {contextHolder}
-      <div style={{ padding: '24px' }}>
-        <Card
-          title={
-            <Space>
-              <HistoryOutlined />
-              <span>审计日志</span>
-            </Space>
-          }
-          style={{ borderRadius: 12 }}
+      <Card
+        title={
+          <Space>
+            <IconHistory />
+            <Text>审计日志</Text>
+          </Space>
+        }
+      >
+        <Tabs
+          activeKey={activeTab}
+          onChange={(key) => {
+            setActiveTab(key as string);
+            if (key === 'audit') fetchAuditLogs(1);
+            else if (key === 'operate') fetchOperateLogs(1);
+            else if (key === 'login') fetchLoginLogs(1);
+          }}
+          tabList={tabList}
+          contentStyle={{ padding: 0 }}
         >
-          <Tabs
-            activeKey={activeTab}
-            onChange={(key) => {
-              setActiveTab(key);
-              if (key === 'audit') fetchAuditLogs(1);
-              else if (key === 'operate') fetchOperateLogs(1);
-              else if (key === 'login') fetchLoginLogs(1);
-            }}
-            items={tabItems}
-          />
-        </Card>
-      </div>
+          {activeTab === 'audit' && (
+            <>
+              <Row gutter={16} style={{ marginBottom: 16 }}>
+                <Col span={8}>
+                  <Card
+                    style={{ textAlign: 'center', background: 'var(--semi-color-bg-1)' }}
+                    bodyStyle={{ padding: '16px' }}
+                  >
+                    <Text type="secondary" size="small" style={{ display: 'block', marginBottom: 8 }}>
+                      今日操作
+                    </Text>
+                    <Space>
+                      <IconClock style={{ color: 'var(--semi-color-success)' }} />
+                      <Title heading={4} style={{ margin: 0, color: 'var(--semi-color-success)' }}>
+                        {stats.today_count}
+                      </Title>
+                    </Space>
+                  </Card>
+                </Col>
+                <Col span={8}>
+                  <Card
+                    style={{ textAlign: 'center', background: 'var(--semi-color-bg-1)' }}
+                    bodyStyle={{ padding: '16px' }}
+                  >
+                    <Text type="secondary" size="small" style={{ display: 'block', marginBottom: 8 }}>
+                      本周操作
+                    </Text>
+                    <Space>
+                      <IconHistory style={{ color: 'var(--semi-color-primary)' }} />
+                      <Title heading={4} style={{ margin: 0, color: 'var(--semi-color-primary)' }}>
+                        {stats.week_count}
+                      </Title>
+                    </Space>
+                  </Card>
+                </Col>
+              </Row>
+
+              <Space style={{ marginBottom: 16 }}>
+                <Select
+                  style={{ width: 150 }}
+                  placeholder="操作类型"
+                  filter
+                  value={filters.action}
+                  onChange={(value) => setFilters({ ...filters, action: value as string | undefined })}
+                  optionList={[
+                    { label: '创建', value: 'create' },
+                    { label: '更新', value: 'update' },
+                    { label: '删除', value: 'delete' },
+                    { label: '查看', value: 'view' },
+                    { label: '登录', value: 'login' },
+                    { label: '登出', value: 'logout' },
+                  ]}
+                />
+                <Button
+                  icon={<IconRefresh />}
+                  onClick={() => fetchAuditLogs(1)}
+                >
+                  刷新
+                </Button>
+              </Space>
+
+              <Table
+                columns={auditColumns}
+                dataSource={auditLogs}
+                rowKey="id"
+                loading={auditLoading}
+                pagination={{
+                  currentPage: auditPage,
+                  pageSize: 20,
+                  total: auditTotal,
+                  onChange: (page) => fetchAuditLogs(page),
+                }}
+              />
+            </>
+          )}
+
+          {activeTab === 'operate' && (
+            <>
+              <Button
+                icon={<IconRefresh />}
+                onClick={() => fetchOperateLogs(1)}
+                style={{ marginBottom: 16 }}
+              >
+                刷新
+              </Button>
+              <Table
+                columns={operateColumns}
+                dataSource={operateLogs}
+                rowKey="id"
+                loading={operateLoading}
+                pagination={{
+                  currentPage: operatePage,
+                  pageSize: 20,
+                  total: operateTotal,
+                  onChange: (page) => fetchOperateLogs(page),
+                }}
+              />
+            </>
+          )}
+
+          {activeTab === 'login' && (
+            <>
+              <Button
+                icon={<IconRefresh />}
+                onClick={() => fetchLoginLogs(1)}
+                style={{ marginBottom: 16 }}
+              >
+                刷新
+              </Button>
+              <Table
+                columns={loginColumns}
+                dataSource={loginLogs}
+                rowKey="id"
+                loading={loginLoading}
+                pagination={{
+                  currentPage: loginPage,
+                  pageSize: 20,
+                  total: loginTotal,
+                  onChange: (page) => fetchLoginLogs(page),
+                }}
+              />
+            </>
+          )}
+        </Tabs>
+      </Card>
     </>
   );
 }

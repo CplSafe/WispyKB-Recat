@@ -7,34 +7,34 @@ import {
   Typography,
   Empty,
   Spin,
-  message,
+  Skeleton,
+  Toast,
   List,
   Tag,
   Modal,
   Upload,
   Progress,
   Input,
+  TextArea,
   Row,
   Col,
   Tooltip,
   Avatar,
-} from 'antd';
+} from '@douyinfe/semi-ui';
 import {
-  ArrowLeftOutlined,
-  UploadOutlined,
-  DeleteOutlined,
-  FileTextOutlined,
-  CloudUploadOutlined,
-  EditOutlined,
-  ReloadOutlined,
-  CheckCircleOutlined,
-  HistoryOutlined,
-} from '@ant-design/icons';
+  IconArrowLeft,
+  IconUpload,
+  IconDelete,
+  IconFile,
+  IconCloudUploadStroked,
+  IconEdit,
+  IconRefresh,
+  IconTickCircle,
+  IconHistory,
+} from '@douyinfe/semi-icons';
 import api from '../lib/api';
 
-const { Dragger } = Upload;
 const { Text, Title } = Typography;
-const { TextArea } = Input;
 
 interface Chunk {
   id: string;
@@ -47,6 +47,7 @@ interface Chunk {
 interface Document {
   id: string;
   name: string;
+  description?: string;
   size: number;
   status: 'processing' | 'completed' | 'failed';
   type: string;
@@ -74,7 +75,6 @@ function KnowledgeDocumentsPage() {
   const navigate = useNavigate();
   const params = useParams();
   const kbId = (params?.id as string) || '';
-  const [messageApi, contextHolder] = message.useMessage();
 
   const [loading, setLoading] = useState(true);
   const [kb, setKb] = useState<KnowledgeBase | null>(null);
@@ -122,7 +122,7 @@ function KnowledgeDocumentsPage() {
       setEditDescription(data.description || '');
     } catch (error) {
       console.error('Failed to fetch knowledge base:', error);
-      messageApi.error('Failed to load knowledge base');
+      Toast.error('Failed to load knowledge base');
       navigate('/knowledge');
     } finally {
       setLoading(false);
@@ -151,7 +151,7 @@ function KnowledgeDocumentsPage() {
 
   const handleUpdateKB = async () => {
     if (!editName.trim()) {
-      messageApi.warning('请输入知识库名称');
+      Toast.warning('请输入知识库名称');
       return;
     }
 
@@ -162,11 +162,11 @@ function KnowledgeDocumentsPage() {
         description: editDescription,
       });
 
-      messageApi.success('更新成功');
+      Toast.success('更新成功');
       setKb({ ...kb!, name: editName, description: editDescription });
       setIsEditModalOpen(false);
     } catch (error) {
-      messageApi.error(typeof error === 'string' ? error : '更新失败');
+      Toast.error(typeof error === 'string' ? error : '更新失败');
     } finally {
       setSaving(false);
     }
@@ -207,14 +207,14 @@ function KnowledgeDocumentsPage() {
         });
       }
 
-      messageApi.success('文档上传成功');
+      Toast.success('文档上传成功');
       setUploadingFiles([]);
       setUploadProgress({});
       setIsUploadModalOpen(false);
       fetchDocuments();
       fetchKnowledgeBase();
     } catch (error) {
-      messageApi.error('上传失败');
+      Toast.error('上传失败');
     } finally {
       setUploading(false);
     }
@@ -225,13 +225,13 @@ function KnowledgeDocumentsPage() {
       title: '确认删除',
       content: `确定要删除文档 "${docName}" 吗？此操作不可恢复。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { type: 'danger' },
       cancelText: '取消',
       onOk: async () => {
         try {
           await api.delete(`/knowledge-bases/${kbId}/documents/${docId}`);
 
-          messageApi.success('文档已删除');
+          Toast.success('文档已删除');
           if (selectedDoc?.id === docId) {
             setSelectedDoc(null);
             setDocChunks([]);
@@ -239,7 +239,7 @@ function KnowledgeDocumentsPage() {
           fetchDocuments();
           fetchKnowledgeBase();
         } catch (error) {
-          messageApi.error('删除失败');
+          Toast.error('删除失败');
         }
       },
     });
@@ -254,7 +254,7 @@ function KnowledgeDocumentsPage() {
       setDocChunks(data.chunks || []);
     } catch (error) {
       console.error('Failed to fetch chunks:', error);
-      messageApi.error('Failed to load chunks');
+      Toast.error('Failed to load chunks');
     } finally {
       setLoadingChunks(false);
     }
@@ -272,12 +272,12 @@ function KnowledgeDocumentsPage() {
     try {
       await api.post(`/knowledge-bases/${kbId}/documents/${reindexingDocId}/reindex`, {});
 
-      messageApi.success('重建索引成功');
+      Toast.success('重建索引成功');
       if (selectedDoc) {
         handleSelectDoc(selectedDoc);
       }
     } catch (error) {
-      messageApi.error('重建索引失败');
+      Toast.error('重建索引失败');
     } finally {
       setReindexing(false);
       setReindexModalOpen(false);
@@ -302,10 +302,10 @@ function KnowledgeDocumentsPage() {
     } catch (error) {
       console.error('Failed to fetch document history:', error);
       if (error === 'Forbidden') {
-        messageApi.error('没有权限查看文档历史');
+        Toast.error('没有权限查看文档历史');
         setHistoryModalOpen(false);
       } else {
-        messageApi.error('加载历史失败');
+        Toast.error('加载历史失败');
         setHistoryModalOpen(false);
       }
     } finally {
@@ -327,13 +327,13 @@ function KnowledgeDocumentsPage() {
         content: chunkContent,
       });
 
-      messageApi.success('保存成功');
+      Toast.success('保存成功');
       setEditingChunk(null);
       if (selectedDoc) {
         handleSelectDoc(selectedDoc);
       }
     } catch (error) {
-      messageApi.error('保存失败');
+      Toast.error('保存失败');
     } finally {
       setSavingChunk(false);
     }
@@ -360,49 +360,45 @@ function KnowledgeDocumentsPage() {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: 100 }}>
-        <Spin size="large" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Skeleton.Title style={{ width: 200 }} />
+        <Skeleton.Paragraph rows={8} />
       </div>
     );
   }
 
   return (
     <>
-      {contextHolder}
-      <div style={{ padding: '24px' }}>
-        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Space size={16}>
               <Button
-                icon={<ArrowLeftOutlined />}
+                icon={<IconArrowLeft />}
                 onClick={() => navigate('/knowledge')}
-                style={{ borderRadius: 8 }}
               >
                 返回
               </Button>
               <div>
-                <Title level={4} style={{ margin: 0, color: '#1E293B', fontSize: 18 }}>
+                <Title heading={4} style={{ margin: 0 }}>
                   {kb?.name}
                 </Title>
-                <Text style={{ color: '#64748B', fontSize: 13 }}>
+                <Text type="tertiary" style={{ fontSize: 13 }}>
                   {kb?.description || 'No description'}
                 </Text>
               </div>
             </Space>
             <Space>
               <Button
-                icon={<EditOutlined />}
+                icon={<IconEdit />}
                 onClick={() => setIsEditModalOpen(true)}
-                style={{ borderRadius: 8 }}
               >
                 编辑
               </Button>
               <Button
                 type="primary"
-                icon={<UploadOutlined />}
+                icon={<IconUpload />}
                 onClick={() => setIsUploadModalOpen(true)}
-                style={{ borderRadius: 8 }}
               >
                 上传文档
               </Button>
@@ -416,7 +412,7 @@ function KnowledgeDocumentsPage() {
               <Card
                 title={
                   <Space>
-                    <FileTextOutlined />
+                    <IconFile />
                     <Text>文档列表</Text>
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       ({documents.length})
@@ -424,18 +420,16 @@ function KnowledgeDocumentsPage() {
                   </Space>
                 }
                 style={{
-                  background: '#FFFFFF',
-                  borderRadius: 12,
-                  borderColor: '#E2E8F0',
+                  borderColor: 'var(--semi-color-border)',
                   height: 'calc(100vh - 180px)',
                   overflow: 'hidden',
                 }}
-                styles={{ body: { padding: '12px', height: 'calc(100% - 57px)', overflow: 'auto' } }}
+                bodyStyle={{ padding: '12px', height: 'calc(100% - 57px)', overflow: 'auto' }}
               >
                 {documents.length === 0 ? (
                   <Empty description="暂无文档" style={{ padding: 40 }} />
                 ) : (
-                  <Space orientation="vertical" style={{ width: '100%' }} size={8}>
+                  <Space vertical style={{ width: '100%' }} size={8}>
                     {documents.map((doc) => (
                       <div
                         key={doc.id}
@@ -443,27 +437,15 @@ function KnowledgeDocumentsPage() {
                         style={{
                           padding: '12px',
                           borderRadius: 8,
-                          border: selectedDoc?.id === doc.id ? '1px solid #2563EB' : '1px solid #E2E8F0',
-                          background: selectedDoc?.id === doc.id ? '#F0F9FF' : '#FAFAFA',
+                          border: selectedDoc?.id === doc.id ? '1px solid var(--semi-color-primary)' : '1px solid var(--semi-color-border)',
+                          background: selectedDoc?.id === doc.id ? 'var(--semi-color-primary-light-default)' : 'var(--semi-color-bg-1)',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                         }}
-                        onMouseEnter={(e) => {
-                          if (selectedDoc?.id !== doc.id) {
-                            e.currentTarget.style.background = '#F1F5F9';
-                            e.currentTarget.style.borderColor = '#CBD5E1';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (selectedDoc?.id !== doc.id) {
-                            e.currentTarget.style.background = '#FAFAFA';
-                            e.currentTarget.style.borderColor = '#E2E8F0';
-                          }
-                        }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <Space orientation="vertical" size={4} style={{ flex: 1, minWidth: 0 }}>
-                            <Text strong style={{ fontSize: 13, color: '#1E293B' }} ellipsis>
+                          <Space vertical size={4} style={{ flex: 1, minWidth: 0 }}>
+                            <Text strong style={{ fontSize: 13 }} ellipsis>
                               {doc.name}
                             </Text>
                             <Space size={8} wrap>
@@ -482,7 +464,7 @@ function KnowledgeDocumentsPage() {
                                       size={16}
                                       src={doc.created_by_avatar ? (doc.created_by_avatar.startsWith('http') ? doc.created_by_avatar : `${window.location.origin}${doc.created_by_avatar}`) : undefined}
                                       style={{
-                                        backgroundColor: '#2563EB',
+                                        backgroundColor: 'var(--semi-color-primary)',
                                         fontSize: 8,
                                         flexShrink: 0,
                                       }}
@@ -500,7 +482,7 @@ function KnowledgeDocumentsPage() {
                                       size={16}
                                       src={doc.updated_by_avatar ? (doc.updated_by_avatar.startsWith('http') ? doc.updated_by_avatar : `${window.location.origin}${doc.updated_by_avatar}`) : undefined}
                                       style={{
-                                        backgroundColor: '#059669',
+                                        backgroundColor: 'var(--semi-color-success)',
                                         fontSize: 8,
                                         flexShrink: 0,
                                       }}
@@ -518,9 +500,9 @@ function KnowledgeDocumentsPage() {
                           <Space size={4}>
                             <Tooltip title="重建索引">
                               <Button
-                                type="text"
+                                type="tertiary"
                                 size="small"
-                                icon={<ReloadOutlined />}
+                                icon={<IconRefresh />}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleReindex(doc.id);
@@ -530,9 +512,9 @@ function KnowledgeDocumentsPage() {
                             </Tooltip>
                             <Tooltip title="查看历史">
                               <Button
-                                type="text"
+                                type="tertiary"
                                 size="small"
-                                icon={<HistoryOutlined />}
+                                icon={<IconHistory />}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleViewHistory(doc);
@@ -542,10 +524,10 @@ function KnowledgeDocumentsPage() {
                             </Tooltip>
                             <Tooltip title="删除">
                               <Button
-                                type="text"
+                                type="tertiary"
                                 danger
                                 size="small"
-                                icon={<DeleteOutlined />}
+                                icon={<IconDelete />}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDeleteDocument(doc.id, doc.name);
@@ -568,13 +550,13 @@ function KnowledgeDocumentsPage() {
                 title={
                   selectedDoc ? (
                     <Space>
-                      <FileTextOutlined />
+                      <IconFile />
                       <Text>{selectedDoc.name}</Text>
                       <Tag color="blue">{docChunks.length} 个分块</Tag>
                     </Space>
                   ) : (
                     <Space>
-                      <FileTextOutlined />
+                      <IconFile />
                       <Text>分块内容</Text>
                     </Space>
                   )
@@ -585,9 +567,8 @@ function KnowledgeDocumentsPage() {
                       <Tooltip title="重建索引">
                         <Button
                           size="small"
-                          icon={<ReloadOutlined />}
+                          icon={<IconRefresh />}
                           onClick={() => handleReindex(selectedDoc.id)}
-                          style={{ borderRadius: 6 }}
                         >
                           重建索引
                         </Button>
@@ -596,13 +577,11 @@ function KnowledgeDocumentsPage() {
                   )
                 }
                 style={{
-                  background: '#FFFFFF',
-                  borderRadius: 12,
-                  borderColor: '#E2E8F0',
+                  borderColor: 'var(--semi-color-border)',
                   height: 'calc(100vh - 180px)',
                   overflow: 'hidden',
                 }}
-                styles={{ body: { padding: '16px', height: 'calc(100% - 57px)', overflow: 'auto' } }}
+                bodyStyle={{ padding: '16px', height: 'calc(100% - 57px)', overflow: 'auto' }}
               >
                 {!selectedDoc ? (
                   <Empty
@@ -616,17 +595,16 @@ function KnowledgeDocumentsPage() {
                 ) : docChunks.length === 0 ? (
                   <Empty description="该文档暂无分块数据" />
                 ) : (
-                  <Space orientation="vertical" style={{ width: '100%' }} size={12}>
+                  <Space vertical style={{ width: '100%' }} size={12}>
                     {docChunks.map((chunk) => (
                       <Card
                         key={chunk.id}
                         size="small"
                         style={{
-                          borderRadius: 8,
-                          border: '1px solid #E2E8F0',
-                          background: '#FAFAFA',
+                          border: '1px solid var(--semi-color-border)',
+                          background: 'var(--semi-color-bg-1)',
                         }}
-                        styles={{ body: { padding: '12px' } }}
+                        bodyStyle={{ padding: '12px' }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                           <Space>
@@ -637,9 +615,9 @@ function KnowledgeDocumentsPage() {
                           </Space>
                           {editingChunk?.id !== chunk.id ? (
                             <Button
-                              type="text"
+                              type="tertiary"
                               size="small"
-                              icon={<EditOutlined />}
+                              icon={<IconEdit />}
                               onClick={() => handleEditChunk(chunk)}
                             >
                               编辑
@@ -649,7 +627,7 @@ function KnowledgeDocumentsPage() {
                               <Button
                                 type="primary"
                                 size="small"
-                                icon={<CheckCircleOutlined />}
+                                icon={<IconTickCircle />}
                                 onClick={handleSaveChunk}
                                 loading={savingChunk}
                               >
@@ -670,17 +648,16 @@ function KnowledgeDocumentsPage() {
                         {editingChunk?.id === chunk.id ? (
                           <TextArea
                             value={chunkContent}
-                            onChange={(e) => setChunkContent(e.target.value)}
+                            onChange={(value) => setChunkContent(value)}
                             rows={8}
-                            style={{ borderRadius: 8 }}
                           />
                         ) : (
                           <div
                             style={{
                               padding: 12,
-                              background: 'white',
+                              background: 'var(--semi-color-bg-0)',
                               borderRadius: 6,
-                              border: '1px solid #E2E8F0',
+                              border: '1px solid var(--semi-color-border)',
                               whiteSpace: 'pre-wrap',
                               wordBreak: 'break-word',
                               fontSize: 13,
@@ -699,55 +676,39 @@ function KnowledgeDocumentsPage() {
               </Card>
             </Col>
           </Row>
-        </Space>
+        </div>
 
         {/* Edit Modal */}
         <Modal
           title="编辑知识库"
-          open={isEditModalOpen}
+          visible={isEditModalOpen}
           onCancel={() => setIsEditModalOpen(false)}
           onOk={handleUpdateKB}
           okText="保存"
           cancelText="取消"
-          confirmLoading={saving}
-          styles={{ body: { padding: '24px' } }}
+          okButtonProps={{ loading: saving }}
+          bodyStyle={{ padding: '24px' }}
         >
-          <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+          <Space vertical size={16} style={{ width: '100%' }}>
             <div>
-              <Text strong style={{ display: 'block', marginBottom: 8, color: '#1E293B' }}>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>
                 知识库名称
               </Text>
-              <input
-                type="text"
+              <Input
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={(value) => setEditName(value)}
                 placeholder="输入知识库名称"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  border: '1px solid #E2E8F0',
-                  fontSize: 14,
-                }}
               />
             </div>
             <div>
-              <Text strong style={{ display: 'block', marginBottom: 8, color: '#1E293B' }}>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>
                 描述
               </Text>
-              <textarea
+              <TextArea
                 value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
+                onChange={(value) => setEditDescription(value)}
                 placeholder="简要描述此知识库的用途..."
                 rows={3}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  border: '1px solid #E2E8F0',
-                  fontSize: 14,
-                  resize: 'vertical',
-                }}
               />
             </div>
           </Space>
@@ -756,67 +717,55 @@ function KnowledgeDocumentsPage() {
         {/* Upload Modal */}
         <Modal
           title="上传文档"
-          open={isUploadModalOpen}
+          visible={isUploadModalOpen}
           onCancel={() => !uploading && setIsUploadModalOpen(false)}
           footer={null}
           width={560}
-          styles={{ body: { padding: '24px' } }}
+          bodyStyle={{ padding: '24px' }}
         >
-          <Space orientation="vertical" size={20} style={{ width: '100%' }}>
-            <Dragger
+          <Space vertical size={20} style={{ width: '100%' }}>
+            <Upload
+              draggable
               multiple
               accept=".txt,.md,.pdf,.docx,.html,.xlsx,.csv"
-              beforeUpload={(_, fileList) => {
-                setUploadingFiles([...uploadingFiles, ...fileList]);
+              beforeUpload={({ file, fileList }) => {
+                setUploadingFiles(prev => [...prev, ...fileList.map(f => f.fileInstance as File)]);
                 return false;
               }}
               disabled={uploading}
               showUploadList={false}
-              style={{
-                borderRadius: 12,
-                background: '#F8FAFC',
-                borderColor: '#E2E8F0',
-              }}
-            >
-              <p className="ant-upload-drag-icon">
-                <CloudUploadOutlined style={{ fontSize: 48, color: '#CBD5E1' }} />
-              </p>
-              <p className="ant-upload-text" style={{ color: '#475569' }}>
-                点击或拖拽文件到此区域上传
-              </p>
-              <p className="ant-upload-hint" style={{ color: '#94A3B8' }}>
-                支持 TXT、MD、PDF、DOCX、HTML 等格式，单个文件最大 50MB
-              </p>
-            </Dragger>
+              dragMainText="点击或拖拽文件到此区域上传"
+              dragSubText="支持 TXT、MD、PDF、DOCX、HTML 等格式，单个文件最大 50MB"
+            />
 
             {uploadingFiles.length > 0 && (
               <div>
-                <Text strong style={{ display: 'block', marginBottom: 12, color: '#1E293B' }}>
+                <Text strong style={{ display: 'block', marginBottom: 12 }}>
                   已选择 {uploadingFiles.length} 个文件
                 </Text>
                 <List
                   dataSource={uploadingFiles}
                   renderItem={(file, index) => (
                     <List.Item
-                      style={{ padding: '12px 0', borderBottom: '1px solid #F1F5F9' }}
+                      style={{ padding: '12px 0', borderBottom: '1px solid var(--semi-color-bg-2)' }}
                       actions={uploading ? [] : [
                         <Button
-                          type="text"
+                          type="tertiary"
                           danger
                           size="small"
-                          icon={<DeleteOutlined />}
+                          icon={<IconDelete />}
                           onClick={() => setUploadingFiles(uploadingFiles.filter((_, i) => i !== index))}
                         />
                       ]}
                     >
                       <List.Item.Meta
-                        avatar={<FileTextOutlined style={{ fontSize: 16, color: '#94A3B8' }} />}
+                        avatar={<IconFile style={{ fontSize: 16, color: 'var(--semi-color-text-3)' }} />}
                         title={<Text style={{ fontSize: 13 }}>{file.name}</Text>}
                         description={
-                          <Space orientation="vertical" size={4} style={{ width: 200 }}>
+                          <Space vertical size={4} style={{ width: 200 }}>
                             <Text type="secondary" style={{ fontSize: 11 }}>{formatFileSize(file.size)}</Text>
                             {uploadProgress[file.name] !== undefined && (
-                              <Progress percent={uploadProgress[file.name]} size="small" strokeColor="#2563EB" />
+                              <Progress percent={uploadProgress[file.name]} size="small" />
                             )}
                           </Space>
                         }
@@ -836,7 +785,6 @@ function KnowledgeDocumentsPage() {
                 onClick={handleUpload}
                 loading={uploading}
                 disabled={uploadingFiles.length === 0}
-                style={{ borderRadius: 8 }}
               >
                 上传
               </Button>
@@ -847,12 +795,12 @@ function KnowledgeDocumentsPage() {
         {/* Reindex Confirm Modal */}
         <Modal
           title="重建文档索引"
-          open={reindexModalOpen}
+          visible={reindexModalOpen}
           onOk={confirmReindex}
           onCancel={cancelReindex}
           okText="确认"
           cancelText="取消"
-          confirmLoading={reindexing}
+          okButtonProps={{ loading: reindexing }}
           centered
         >
           <p>确定要重建该文档的索引吗？这将重新生成向量嵌入。</p>
@@ -862,11 +810,11 @@ function KnowledgeDocumentsPage() {
         <Modal
           title={
             <Space>
-              <HistoryOutlined />
-              <span>文档历史 - {historyDoc?.name}</span>
+              <IconHistory />
+              <Text>文档历史 - {historyDoc?.name}</Text>
             </Space>
           }
-          open={historyModalOpen}
+          visible={historyModalOpen}
           onCancel={() => setHistoryModalOpen(false)}
           footer={[
             <Button key="close" onClick={() => setHistoryModalOpen(false)}>
@@ -885,17 +833,16 @@ function KnowledgeDocumentsPage() {
               <Text type="secondary">暂无修改历史</Text>
             </div>
           ) : (
-            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+            <Space vertical size={12} style={{ width: '100%' }}>
               {docHistory.map((log) => (
                 <Card
                   key={log.id}
                   size="small"
                   style={{
-                    background: log.action === 'delete' ? '#FEF2F2' : '#F8FAFC',
-                    borderRadius: 8,
+                    background: log.action === 'delete' ? 'var(--semi-color-danger-light-default)' : 'var(--semi-color-bg-1)',
                   }}
                 >
-                  <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+                  <Space vertical size={8} style={{ width: '100%' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Space>
                         <Tag color={
@@ -919,21 +866,21 @@ function KnowledgeDocumentsPage() {
                     {log.changes && (
                       <div style={{
                         padding: 12,
-                        background: 'white',
+                        background: 'var(--semi-color-bg-0)',
                         borderRadius: 6,
-                        border: '1px solid #E2E8F0',
+                        border: '1px solid var(--semi-color-border)',
                       }}>
                         <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>变更内容：</Text>
                         {Object.entries(log.changes).map(([key, value]: [string, any]) => (
                           <div key={key} style={{ marginBottom: 8 }}>
-                            <Text style={{ fontSize: 11, color: '#64748B' }}>{key}:</Text>
+                            <Text type="tertiary" style={{ fontSize: 11 }}>{key}:</Text>
                             <div style={{ marginTop: 4 }}>
                               {value?.old !== undefined && (
                                 <div style={{ marginBottom: 4 }}>
                                   <Text type="secondary" style={{ fontSize: 11 }}>旧值：</Text>
                                   <div style={{
                                     padding: '6px 8px',
-                                    background: '#FEF2F2',
+                                    background: 'var(--semi-color-danger-light-default)',
                                     borderRadius: 4,
                                     marginTop: 4,
                                     fontSize: 12,
@@ -950,7 +897,7 @@ function KnowledgeDocumentsPage() {
                                   <Text type="secondary" style={{ fontSize: 11 }}>新值：</Text>
                                   <div style={{
                                     padding: '6px 8px',
-                                    background: '#F0FDF4',
+                                    background: 'var(--semi-color-success-light-default)',
                                     borderRadius: 4,
                                     marginTop: 4,
                                     fontSize: 12,
@@ -973,9 +920,8 @@ function KnowledgeDocumentsPage() {
             </Space>
           )}
         </Modal>
-      </div>
-    </>
-  );
+      </>
+    );
 }
 
 export default KnowledgeDocumentsPage;

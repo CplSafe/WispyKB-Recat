@@ -17,4 +17,7 @@ export enum WorkflowNodeType {
   Comment = 'comment',
   Continue = 'continue',
   Break = 'break',
+  KnowledgeBase = 'knowledge-base',
+  MCPService = 'mcp-service',
+  WorkflowApp = 'workflow-app',
 }

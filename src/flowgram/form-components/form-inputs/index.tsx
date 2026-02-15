@@ -10,9 +10,27 @@ import { FormItem } from '../form-item';
 import { Feedback } from '../feedback';
 import { JsonSchema } from '../../typings';
 import { useNodeRenderContext } from '../../hooks';
+import {
+  KnowledgeBaseSelect,
+  MCPServiceSelect,
+  MCPMethodSelect,
+  WorkflowAppSelect,
+} from '../form-selects';
+import { useState, useCallback } from 'react';
+
+interface MCPServiceOption {
+  id: string;
+  name: string;
+  methods?: string[];
+}
 
 export function FormInputs() {
   const { readonly } = useNodeRenderContext();
+  const [selectedMcpService, setSelectedMcpService] = useState<MCPServiceOption | null>(null);
+
+  const handleMcpServiceChange = useCallback((service: MCPServiceOption | null) => {
+    setSelectedMcpService(service);
+  }, []);
 
   return (
     <Field<JsonSchema> name="inputs">
@@ -27,7 +45,7 @@ export function FormInputs() {
 
           const formComponent = property.extra?.formComponent;
 
-          const vertical = ['prompt-editor'].includes(formComponent || '');
+          const vertical = ['prompt-editor', 'code-editor'].includes(formComponent || '');
 
           return (
             <Field key={key} name={`inputsValues.${key}`} defaultValue={property.default}>
@@ -37,6 +55,7 @@ export function FormInputs() {
                   vertical={vertical}
                   type={property.type as string}
                   required={required.includes(key)}
+                  title={property.title as string}
                 >
                   {formComponent === 'prompt-editor' && (
                     <PromptEditorWithVariables
@@ -44,6 +63,36 @@ export function FormInputs() {
                       onChange={field.onChange}
                       readonly={readonly}
                       hasError={Object.keys(fieldState?.errors || {}).length > 0}
+                    />
+                  )}
+                  {formComponent === 'knowledge-base-select' && (
+                    <KnowledgeBaseSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      readonly={readonly}
+                    />
+                  )}
+                  {formComponent === 'mcp-service-select' && (
+                    <MCPServiceSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      readonly={readonly}
+                      onServiceChange={handleMcpServiceChange}
+                    />
+                  )}
+                  {formComponent === 'mcp-method-select' && (
+                    <MCPMethodSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      readonly={readonly}
+                      serviceId={selectedMcpService?.id}
+                    />
+                  )}
+                  {formComponent === 'workflow-app-select' && (
+                    <WorkflowAppSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      readonly={readonly}
                     />
                   )}
                   {!formComponent && (

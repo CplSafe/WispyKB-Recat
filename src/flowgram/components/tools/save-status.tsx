@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-import { IconRefresh, IconCheckCircle, IconCloseCircle } from '@douyinfe/semi-icons';
+import { IconTickCircle, IconAlertCircle } from '@douyinfe/semi-icons';
 
 import { SaveStatus } from '../../services/workflow-api';
 import { useI18n } from '@flowgram/hooks';
@@ -27,13 +27,13 @@ export const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({ status
         };
       case 'saved':
         return {
-          icon: <IconCheckCircle size="small" />,
+          icon: <IconTickCircle size="small" />,
           text: i18n.t('saved') || '已保存',
           color: 'var(--semi-color-success)',
         };
       case 'error':
         return {
-          icon: <IconCloseCircle size="small" />,
+          icon: <IconAlertCircle size="small" />,
           text: error || (i18n.t('saveError') || '保存失败'),
           color: 'var(--semi-color-danger)',
         };

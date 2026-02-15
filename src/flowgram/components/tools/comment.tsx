@@ -66,7 +66,7 @@ export const Comment = () => {
       trigger="custom"
       visible={tooltipVisible}
       onVisibleChange={setTooltipVisible}
-      content={i18n.t('comment')}
+      content={i18n.t('annotation')}
     >
       <IconButton
         disabled={playground.config.readonly}

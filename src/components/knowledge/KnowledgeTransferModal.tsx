@@ -1,37 +1,35 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Modal,
   Transfer,
   Button,
   Space,
   Typography,
   Upload,
-  message,
+  Toast,
   Input,
+  TextArea,
   Select,
   Spin,
   Tag,
   Progress,
-  Divider,
   Tabs,
-} from 'antd';
+  Banner,
+  Sidebar,
+  Form,
+} from '@douyinfe/semi-ui';
 import {
-  DatabaseOutlined,
-  InboxOutlined,
-  CloudUploadOutlined,
-  FileTextOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  AppstoreOutlined,
-  GlobalOutlined,
-  LinkOutlined,
-} from '@ant-design/icons';
-import type { TransferProps } from 'antd/es/transfer';
+  IconCloud,
+  IconFile,
+  IconDelete,
+  IconPlus,
+  IconServer,
+  IconGlobe,
+  IconLink,
+  IconArchive,
+} from '@douyinfe/semi-icons';
 import api from '../../lib/api';
 
 const { Text, Title } = Typography;
-const { TextArea } = Input;
-const { Dragger } = Upload;
 
 interface Document {
   id: string;
@@ -49,7 +47,7 @@ interface Application {
 }
 
 interface KnowledgeTransferModalProps {
-  open: boolean;
+  visible: boolean;
   onCancel: () => void;
   mode: 'create' | 'upload';
   kbId?: string;
@@ -60,15 +58,13 @@ interface KnowledgeTransferModalProps {
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8888';
 
 export default function KnowledgeTransferModal({
-  open,
+  visible,
   onCancel,
   mode,
   kbId,
   kbName: propKbName,
   onSuccess,
 }: KnowledgeTransferModalProps) {
-  const [messageApi, contextHolder] = message.useMessage();
-
   // 表单状态
   const [formKbName, setFormKbName] = useState('');
   const [formKbDesc, setFormKbDesc] = useState('');
@@ -123,7 +119,6 @@ export default function KnowledgeTransferModal({
     try {
       const data = await api.get(`/knowledge-bases/${kbId}/documents`);
       setKbDocuments(data.documents || []);
-      // 设置已分配的文档为 targetKeys
       setTargetKeys((data.documents || []).map((d: Document) => d.id));
     } catch (error) {
       console.error('Failed to fetch KB documents:', error);
@@ -156,7 +151,7 @@ export default function KnowledgeTransferModal({
   }, []);
 
   useEffect(() => {
-    if (open) {
+    if (visible) {
       fetchPoolDocuments();
       fetchFeishuConfig();
       if (mode === 'upload') {
@@ -165,7 +160,7 @@ export default function KnowledgeTransferModal({
         fetchApplications();
       }
     }
-  }, [open, mode, fetchPoolDocuments, fetchKbDocuments, fetchApplications, fetchFeishuConfig]);
+  }, [visible, mode, fetchPoolDocuments, fetchKbDocuments, fetchApplications, fetchFeishuConfig]);
 
   // 上传文档到池
   const handleUploadToPool = async (file: File) => {
@@ -198,10 +193,10 @@ export default function KnowledgeTransferModal({
         xhr.send(formData);
       });
 
-      messageApi.success(`${file.name} 上传成功`);
+      Toast.success(`${file.name} 上传成功`);
       await fetchPoolDocuments();
     } catch (error) {
-      messageApi.error(`${file.name} 上传失败`);
+      Toast.error(`${file.name} 上传失败`);
     } finally {
       setUploading(false);
       setUploadProgress(prev => {
@@ -218,36 +213,33 @@ export default function KnowledgeTransferModal({
   const handleDelete = async (docId: string) => {
     try {
       await api.delete(`/documents/pool/${docId}`);
-      messageApi.success('文档已删除');
+      Toast.success('文档已删除');
       await fetchPoolDocuments();
     } catch (error) {
-      messageApi.error('删除失败');
+      Toast.error('删除失败');
     }
   };
 
-  // 网页同步（同步到文档池，稍后可分配）
+  // 网页同步
   const handleWebSync = async () => {
     if (!webUrl.trim()) {
-      messageApi.warning('请输入网页URL');
+      Toast.warning('请输入网页URL');
       return;
     }
 
     setSyncingWeb(true);
     try {
-      // 如果是上传模式，直接同步到知识库；如果是创建模式，先同步到文档池
       if (mode === 'upload' && kbId) {
         const data = await api.post(`/knowledge-bases/${kbId}/sync/web`, { url: webUrl });
-        messageApi.success(`网页同步成功，已抓取 ${data.word_count || 0} 个字符`);
+        Toast.success(`网页同步成功，已抓取 ${data.word_count || 0} 个字符`);
         setWebUrl('');
         await fetchKbDocuments();
         await fetchPoolDocuments();
       } else {
-        // 创建模式：先同步到临时知识库，然后移回文档池
-        // 这里简化处理：直接提示用户在创建后使用网页同步
-        messageApi.info('请先创建知识库，然后使用"管理文档"功能同步网页内容');
+        Toast.info('请先创建知识库，然后使用"管理文档"功能同步网页内容');
       }
     } catch (error) {
-      messageApi.error(typeof error === 'string' ? error : '网页同步失败');
+      Toast.error(typeof error === 'string' ? error : '网页同步失败');
     } finally {
       setSyncingWeb(false);
     }
@@ -256,24 +248,23 @@ export default function KnowledgeTransferModal({
   // 飞书知识库同步
   const handleFeishuSync = async () => {
     if (!feishuConfigured) {
-      messageApi.warning('请先在系统设置中配置飞书 App ID 和 App Secret');
+      Toast.warning('请先在系统设置中配置飞书 App ID 和 App Secret');
       return;
     }
 
     if (!feishuSpaceId.trim() && !feishuNodeToken.trim()) {
-      messageApi.warning('请输入飞书知识库 ID 或文档 Token');
+      Toast.warning('请输入飞书知识库 ID 或文档 Token');
       return;
     }
 
     setSyncingFeishu(true);
     try {
-      // 使用现有的飞书同步 API
       const data = await api.post('/integrations/feishu/sync', {
         space_id: feishuSpaceId || undefined,
         node_token: feishuNodeToken || undefined,
-        kb_id: mode === 'upload' ? kbId : undefined,  // 上传模式直接同步到知识库
+        kb_id: mode === 'upload' ? kbId : undefined,
       });
-      messageApi.success(`飞书同步成功，已同步 ${data.documents_count || 0} 个文档`);
+      Toast.success(`飞书同步成功，已同步 ${data.documents_count || 0} 个文档`);
       setFeishuSpaceId('');
       setFeishuNodeToken('');
       await fetchPoolDocuments();
@@ -281,40 +272,31 @@ export default function KnowledgeTransferModal({
         await fetchKbDocuments();
       }
     } catch (error) {
-      messageApi.error(typeof error === 'string' ? error : '飞书同步失败');
+      Toast.error(typeof error === 'string' ? error : '飞书同步失败');
     } finally {
       setSyncingFeishu(false);
     }
-  };
-
-  // 穿梭框变更
-  const handleTransferChange: TransferProps['onChange'] = (newTargetKeys) => {
-    setTargetKeys(newTargetKeys as string[]);
   };
 
   // 提交创建或更新
   const handleSubmit = async () => {
     if (mode === 'create') {
       if (!formKbName.trim()) {
-        messageApi.warning('请输入知识库名称');
+        Toast.warning('请输入知识库名称');
         return;
       }
 
       setSubmitting(true);
       try {
-        // 1. 创建知识库
         const kbData = await api.post('/knowledge-bases', {
           name: formKbName,
           description: formKbDesc,
         });
         const newKbId = kbData.id;
 
-        // 2. 关联应用
         if (selectedApps.length > 0) {
-          // 更新应用关联，需要先获取应用完整信息
           for (const appId of selectedApps) {
             const appData = await api.get(`/applications/${appId}`);
-            // 合并现有的知识库ID和新的知识库ID
             const existingKbIds = appData.knowledge_base_ids || [];
             const updatedKbIds = [...new Set([...existingKbIds, newKbId])];
 
@@ -333,7 +315,6 @@ export default function KnowledgeTransferModal({
           }
         }
 
-        // 3. 分配文档
         if (targetKeys.length > 0) {
           await api.post('/documents/assign', {
             doc_ids: targetKeys,
@@ -341,24 +322,21 @@ export default function KnowledgeTransferModal({
           });
         }
 
-        messageApi.success('知识库创建成功');
+        Toast.success('知识库创建成功');
         handleCancel();
         onSuccess?.();
       } catch (error) {
-        messageApi.error(typeof error === 'string' ? error : '创建失败');
+        Toast.error(typeof error === 'string' ? error : '创建失败');
       } finally {
         setSubmitting(false);
       }
     } else {
-      // 上传模式：分配/移除文档
       setSubmitting(true);
       try {
-        // 计算需要分配和移除的文档
         const currentKbDocIds = kbDocuments.map(d => d.id);
         const toAssign = targetKeys.filter(id => !currentKbDocIds.includes(id));
         const toUnassign = currentKbDocIds.filter(id => !targetKeys.includes(id));
 
-        // 分配新文档
         if (toAssign.length > 0) {
           await api.post('/documents/assign', {
             doc_ids: toAssign,
@@ -366,18 +344,17 @@ export default function KnowledgeTransferModal({
           });
         }
 
-        // 移除文档
         if (toUnassign.length > 0) {
           await api.post('/documents/unassign', {
             doc_ids: toUnassign,
           });
         }
 
-        messageApi.success('文档更新成功');
+        Toast.success('文档更新成功');
         handleCancel();
         onSuccess?.();
       } catch (error) {
-        messageApi.error(typeof error === 'string' ? error : '更新失败');
+        Toast.error(typeof error === 'string' ? error : '更新失败');
       } finally {
         setSubmitting(false);
       }
@@ -407,8 +384,8 @@ export default function KnowledgeTransferModal({
   const allDocuments = [...poolDocuments, ...kbDocuments];
   const dataSource = allDocuments.map((doc) => ({
     key: doc.id,
-    title: doc.name,
-    description: `${formatFileSize(doc.size)} • ${doc.type.toUpperCase()}`,
+    label: doc.name,
+    value: doc.id,
     ...doc,
   }));
 
@@ -424,353 +401,303 @@ export default function KnowledgeTransferModal({
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '8px 12px',
-          borderRadius: 6,
         }}
       >
-        <Space size={8}>
-          <FileTextOutlined style={{ color: '#64748B' }} />
+        <Space spacing={8}>
+          <IconFile style={{ color: 'var(--semi-color-text-2)' }} />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>{item.name}</div>
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              {formatFileSize(item.size)} • {item.type.toUpperCase()}
+            <Text>{item.name}</Text>
+            <Text type="tertiary" size="small" style={{ display: 'block' }}>
+              {formatFileSize(item.size)} &bull; {item.type.toUpperCase()}
             </Text>
           </div>
-          {inKb && <Tag color="blue" style={{ fontSize: 10, margin: 0 }}>已分配</Tag>}
+          {inKb && <Tag color="blue" size="small">已分配</Tag>}
         </Space>
         {inPool && (
           <Button
-            type="text"
-            danger
+            type="tertiary"
+            theme="borderless"
             size="small"
-            icon={<DeleteOutlined />}
+            icon={<IconDelete />}
             onClick={(e) => {
               e.stopPropagation();
               handleDelete(item.key);
             }}
-            style={{ fontSize: 12 }}
           />
         )}
       </div>
     );
   };
 
+  const tabList = [
+    {
+      itemKey: 'file',
+      tab: <span><IconCloud /> 本地文件</span>,
+    },
+    {
+      itemKey: 'web',
+      tab: <span><IconGlobe /> 网页同步</span>,
+    },
+    {
+      itemKey: 'feishu',
+      tab: <span><IconServer /> 飞书知识库</span>,
+    },
+  ];
+
   return (
-    <>
-      {contextHolder}
-      <Modal
-        title={null}
-        open={open}
-        onCancel={handleCancel}
-        width={900}
-        footer={null}
-        styles={{ body: { padding: 0 } }}
-        destroyOnHidden
-      >
-        <div style={{ background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', padding: '20px 24px' }}>
-          <Space>
-            <DatabaseOutlined style={{ fontSize: 24, color: '#fff' }} />
-            <div>
-              <Title level={4} style={{ margin: 0, color: '#fff' }}>
-                {mode === 'create' ? '创建知识库' : `管理文档 - ${propKbName}`}
-              </Title>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
-                {mode === 'create' ? '上传文档并分配到新知识库，选择关联应用' : '从文档池选择文档分配到知识库'}
-              </Text>
+    <Sidebar.Container
+      visible={visible}
+      title={mode === 'create' ? '新建知识库' : `管理文档 - ${kbName}`}
+      onCancel={handleCancel}
+      defaultSize={{ width: 560 }}
+    >
+      <div style={{ padding: 20, overflowY: 'auto', height: '100%' }}>
+        <Space vertical spacing={24} style={{ width: '100%' }}>
+          {/* 创建模式：表单字段 */}
+          {mode === 'create' && (
+            <Form layout="vertical" style={{ width: '100%' }}>
+              <Form.Input
+                field="name"
+                label="知识库名称"
+                required
+                placeholder="例如：产品文档、技术资料"
+                value={formKbName}
+                onChange={(value) => setFormKbName(value)}
+                style={{ marginBottom: 16 }}
+              />
+              <Form.TextArea
+                field="description"
+                label="描述"
+                placeholder="简要描述这个知识库的用途..."
+                rows={2}
+                value={formKbDesc}
+                onChange={(value) => setFormKbDesc(value as string)}
+                style={{ marginBottom: 16 }}
+              />
+              <Form.Select
+                field="apps"
+                label="关联应用"
+                placeholder="选择要关联的应用（可选）"
+                multiple
+                value={selectedApps}
+                onChange={(value) => setSelectedApps(value as string[])}
+                optionList={applications.map((app) => ({
+                  label: app.name,
+                  value: app.id,
+                }))}
+                filter
+                loading={appsLoading}
+                style={{ marginBottom: 0 }}
+              />
+            </Form>
+          )}
+
+          {/* 文档导入区域 */}
+          <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: 12,
+              gap: 8
+            }}>
+              <IconCloud style={{ color: 'var(--semi-color-text-2)' }} />
+              <Text strong>添加文档</Text>
             </div>
-          </Space>
-        </div>
+            <Tabs
+              activeKey={syncTab}
+              onChange={(key) => setSyncTab(key as 'file' | 'web' | 'feishu')}
+              tabList={tabList}
+              size="small"
+            >
+              {syncTab === 'file' && (
+                <div style={{ paddingTop: 12 }}>
+                  <Upload
+                    draggable
+                    multiple
+                    accept=".txt,.md,.pdf,.docx,.html,.xlsx,.csv,.json,.xml"
+                    beforeUpload={({ file }) => { handleUploadToPool(file.fileInstance as File); return false; }}
+                    disabled={uploading}
+                    showUploadList={false}
+                    dragMainText="点击或拖拽文件到此处上传"
+                    dragSubText="支持 TXT, MD, PDF, DOCX, HTML, XLSX, CSV, JSON, XML"
+                    style={{
+                      padding: '20px',
+                      background: 'var(--semi-color-bg-1)',
+                      borderColor: 'var(--semi-color-border)',
+                      borderRadius: 8,
+                    }}
+                  />
 
-        <div style={{ padding: '24px' }}>
-          <Space orientation="vertical" size={20} style={{ width: '100%' }}>
-            {/* 创建模式：表单字段 */}
-            {mode === 'create' && (
-              <>
-                <div>
-                  <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-                    <div>
-                      <Text strong style={{ fontSize: 13 }}>
-                        知识库名称 <span style={{ color: '#ef4444' }}>*</span>
+                  {/* 上传进度 */}
+                  {Object.keys(uploadProgress).length > 0 && (
+                    <Space vertical spacing={8} style={{ width: '100%', marginTop: 12 }}>
+                      {Object.entries(uploadProgress).map(([fileName, progress]) => (
+                        <div key={fileName}>
+                          <Text size="small">{fileName}</Text>
+                          <Progress percent={progress} size="small" style={{ marginTop: 4 }} />
+                        </div>
+                      ))}
+                    </Space>
+                  )}
+                </div>
+              )}
+
+              {syncTab === 'web' && (
+                <div style={{ paddingTop: 12 }}>
+                  <Space vertical spacing={12} style={{ width: '100%' }}>
+                    <Input
+                      placeholder="https://example.com/article"
+                      value={webUrl}
+                      onChange={(value) => setWebUrl(value)}
+                      prefix={<IconLink />}
+                      disabled={syncingWeb}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <Button
+                        type="primary"
+                        theme="solid"
+                        onClick={handleWebSync}
+                        loading={syncingWeb}
+                        disabled={!webUrl.trim()}
+                        icon={<IconGlobe />}
+                      >
+                        同步网页
+                      </Button>
+                      <Text type="tertiary" size="small">
+                        抓取公开网页内容
                       </Text>
-                      <Input
-                        placeholder="例如：产品文档、技术资料"
-                        value={formKbName}
-                        onChange={(e) => setFormKbName(e.target.value)}
-                        style={{ marginTop: 6, borderRadius: 6 }}
-                      />
-                    </div>
-
-                    <div>
-                      <Text strong style={{ fontSize: 13 }}>描述</Text>
-                      <TextArea
-                        placeholder="简要描述这个知识库的用途..."
-                        rows={2}
-                        value={formKbDesc}
-                        onChange={(e) => setFormKbDesc(e.target.value)}
-                        style={{ marginTop: 6, borderRadius: 6 }}
-                      />
-                    </div>
-
-                    <div>
-                      <Text strong style={{ fontSize: 13 }}>关联应用（可选）</Text>
-                      <Select
-                        mode="multiple"
-                        placeholder="选择要关联的应用"
-                        value={selectedApps}
-                        onChange={setSelectedApps}
-                        loading={appsLoading}
-                        style={{ width: '100%', marginTop: 6 }}
-                        options={applications.map((app) => ({
-                          label: app.name,
-                          value: app.id,
-                        }))}
-                      />
                     </div>
                   </Space>
                 </div>
+              )}
 
-                <Divider style={{ margin: '12px 0' }} />
-              </>
-            )}
+              {syncTab === 'feishu' && (
+                <div style={{ paddingTop: 12 }}>
+                  <Space vertical spacing={12} style={{ width: '100%' }}>
+                    {!feishuConfigured && (
+                      <Banner
+                        type="warning"
+                        description="请先在系统设置中配置飞书 App ID 和 App Secret"
+                      />
+                    )}
+                    <Input
+                      placeholder="飞书知识库 ID (space_id)"
+                      value={feishuSpaceId}
+                      onChange={(value) => setFeishuSpaceId(value)}
+                      disabled={syncingFeishu}
+                    />
+                    <Input
+                      placeholder="飞书文档 Token (node_token)"
+                      value={feishuNodeToken}
+                      onChange={(value) => setFeishuNodeToken(value)}
+                      disabled={syncingFeishu}
+                    />
+                    <Button
+                      type="primary"
+                      theme="solid"
+                      onClick={handleFeishuSync}
+                      loading={syncingFeishu}
+                      disabled={!feishuConfigured || (!feishuSpaceId.trim() && !feishuNodeToken.trim())}
+                      icon={<IconServer />}
+                    >
+                      同步飞书文档
+                    </Button>
+                  </Space>
+                </div>
+              )}
+            </Tabs>
+          </div>
 
-            {/* 文档导入区域 */}
+          {/* 穿梭框 */}
+          {(poolLoading || kbDocsLoading) ? (
+            <div style={{ textAlign: 'center', padding: 60 }}>
+              <Spin size="large" />
+            </div>
+          ) : (
             <div>
-              <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>
-                <CloudUploadOutlined /> 添加文档到文档池
-              </Text>
-              <Tabs
-                activeKey={syncTab}
-                onChange={(key) => setSyncTab(key as 'file' | 'web' | 'feishu')}
-                size="small"
-                items={[
-                  {
-                    key: 'file',
-                    label: (
-                      <span>
-                        <CloudUploadOutlined /> 本地文件
-                      </span>
-                    ),
-                    children: (
-                      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-                        <Dragger
-                          multiple
-                          accept=".txt,.md,.pdf,.docx,.html,.xlsx,.csv,.json,.xml"
-                          beforeUpload={handleUploadToPool}
-                          disabled={uploading}
-                          showUploadList={false}
-                          style={{
-                            borderRadius: 8,
-                            background: '#F8FAFC',
-                            borderColor: '#E2E8F0',
-                            padding: '16px',
-                          }}
-                        >
-                          <div style={{ textAlign: 'center' }}>
-                            <CloudUploadOutlined style={{ fontSize: 28, color: '#2563EB' }} />
-                            <div style={{ marginTop: 8, fontSize: 13 }}>
-                              点击或拖拽文件到此处上传
-                            </div>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              支持 TXT, MD, PDF, DOCX, HTML, XLSX, CSV, JSON, XML
-                            </Text>
-                          </div>
-                        </Dragger>
-
-                        {/* 上传进度 */}
-                        {Object.keys(uploadProgress).length > 0 && (
-                          <Space orientation="vertical" size={4} style={{ width: '100%' }}>
-                            {Object.entries(uploadProgress).map(([fileName, progress]) => (
-                              <div key={fileName}>
-                                <Text style={{ fontSize: 12 }}>{fileName}</Text>
-                                <Progress percent={progress} size="small" strokeColor="#2563EB" />
-                              </div>
-                            ))}
-                          </Space>
-                        )}
-                      </Space>
-                    ),
-                  },
-                  {
-                    key: 'web',
-                    label: (
-                      <span>
-                        <GlobalOutlined /> 网页同步
-                      </span>
-                    ),
-                    children: (
-                      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-                        <div>
-                          <Text strong style={{ display: 'block', marginBottom: 6, fontSize: 12 }}>
-                            网页链接
-                          </Text>
-                          <Input
-                            placeholder="https://example.com/article"
-                            value={webUrl}
-                            onChange={(e) => setWebUrl(e.target.value)}
-                            prefix={<LinkOutlined />}
-                            disabled={syncingWeb}
-                          />
-                        </div>
-                        <Button
-                          type="primary"
-                          onClick={handleWebSync}
-                          loading={syncingWeb}
-                          disabled={!webUrl.trim()}
-                          icon={<GlobalOutlined />}
-                          style={{ width: 'fit-content' }}
-                        >
-                          同步网页
-                        </Button>
-                        <Text type="secondary" style={{ fontSize: 11 }}>
-                          支持抓取新闻、博客、文档等公开网页内容
-                        </Text>
-                      </Space>
-                    ),
-                  },
-                  {
-                    key: 'feishu',
-                    label: (
-                      <span>
-                        <AppstoreOutlined /> 飞书知识库
-                      </span>
-                    ),
-                    children: (
-                      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-                        {!feishuConfigured && (
-                          <div style={{
-                            padding: '8px 12px',
-                            background: '#FEF3C7',
-                            borderRadius: 6,
-                            border: '1px solid #FDE68A',
-                          }}>
-                            <Text style={{ fontSize: 12, color: '#92400E' }}>
-                              请先在系统设置中配置飞书 App ID 和 App Secret
-                            </Text>
-                          </div>
-                        )}
-                        <div>
-                          <Text strong style={{ display: 'block', marginBottom: 6, fontSize: 12 }}>
-                            知识库 ID
-                          </Text>
-                          <Input
-                            placeholder="飞书知识库的 space_id"
-                            value={feishuSpaceId}
-                            onChange={(e) => setFeishuSpaceId(e.target.value)}
-                            disabled={syncingFeishu}
-                          />
-                        </div>
-                        <Text type="secondary" style={{ fontSize: 11 }}>或</Text>
-                        <div>
-                          <Text strong style={{ display: 'block', marginBottom: 6, fontSize: 12 }}>
-                            文档 Token
-                          </Text>
-                          <Input
-                            placeholder="飞书文档的 node_token"
-                            value={feishuNodeToken}
-                            onChange={(e) => setFeishuNodeToken(e.target.value)}
-                            disabled={syncingFeishu}
-                          />
-                        </div>
-                        <Button
-                          type="primary"
-                          onClick={handleFeishuSync}
-                          loading={syncingFeishu}
-                          disabled={!feishuConfigured || (!feishuSpaceId.trim() && !feishuNodeToken.trim())}
-                          icon={<AppstoreOutlined />}
-                          style={{ width: 'fit-content' }}
-                        >
-                          同步飞书文档
-                        </Button>
-                      </Space>
-                    ),
-                  },
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: 12,
+                gap: 8
+              }}>
+                <IconArchive style={{ color: 'var(--semi-color-text-2)' }} />
+                <Text strong>分配文档</Text>
+                <Text type="tertiary" size="small">
+                  （已选 {targetKeys.length} 个）
+                </Text>
+              </div>
+              <Transfer
+                dataSource={dataSource}
+                targetKeys={targetKeys}
+                onChange={setTargetKeys}
+                render={renderTransferItem}
+                titles={[
+                  `文档池 (${poolDocuments.length})`,
+                  mode === 'create'
+                    ? `待分配 (${targetKeys.length})`
+                    : `${propKbName} (${targetKeys.length})`
                 ]}
+                style={{ width: '100%', height: 240 }}
+                filterable
+                filter={(inputValue, item) =>
+                  item.name?.toLowerCase().includes(inputValue.toLowerCase()) ||
+                  item.type?.toLowerCase().includes(inputValue.toLowerCase())
+                }
               />
             </div>
+          )}
 
-            {/* 穿梭框 */}
-            {(poolLoading || kbDocsLoading) ? (
-              <div style={{ textAlign: 'center', padding: 40 }}>
-                <Spin />
-              </div>
-            ) : (
-              <div>
-                <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>
-                  <InboxOutlined /> 分配文档到知识库
-                </Text>
-                <Transfer
-                  dataSource={dataSource}
-                  targetKeys={targetKeys}
-                  onChange={handleTransferChange}
-                  render={renderTransferItem}
-                  titles={[
-                    `文档池 (${poolDocuments.length})`,
-                    mode === 'create'
-                      ? `待分配 (${targetKeys.length})`
-                      : `${propKbName} (${targetKeys.length})`
-                  ]}
-                  styles={{
-                    list: {
-                      width: '100%',
-                      height: 280,
-                    },
-                  }}
-                  style={{ width: '100%' }}
-                  showSearch
-                  filterOption={(inputValue, item) =>
-                    item.name?.toLowerCase().includes(inputValue.toLowerCase()) ||
-                    item.type?.toLowerCase().includes(inputValue.toLowerCase())
-                  }
-                />
-              </div>
-            )}
-
-            {/* 统计信息 */}
-            <div
-              style={{
-                padding: '12px',
-                background: '#F1F5F9',
-                borderRadius: 8,
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Space size={16}>
-                <Text style={{ fontSize: 12 }}>
-                  <Text strong>文档池:</Text> {poolDocuments.length} 个
-                </Text>
-                {mode === 'upload' && (
-                  <Text style={{ fontSize: 12 }}>
-                    <Text strong>知识库:</Text> {kbDocuments.length} 个
-                  </Text>
-                )}
-                <Text style={{ fontSize: 12 }}>
-                  <Text strong>已选择:</Text> {targetKeys.length} 个
-                </Text>
-              </Space>
-              <Text style={{ fontSize: 12, color: '#64748B' }}>
-                {mode === 'create' ? '创建后将自动分配选中的文档' : '点击保存后生效'}
+          {/* 统计信息 */}
+          <div
+            style={{
+              padding: '12px 16px',
+              background: 'var(--semi-color-bg-1)',
+              borderRadius: 8,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Space spacing={20}>
+              <Text size="small" type="tertiary">
+                文档池 <Text strong>{poolDocuments.length}</Text> 个
               </Text>
-            </div>
+              {mode === 'upload' && (
+                <Text size="small" type="tertiary">
+                  知识库 <Text strong>{kbDocuments.length}</Text> 个
+                </Text>
+              )}
+              <Text size="small" type="tertiary">
+                已选 <Text strong>{targetKeys.length}</Text> 个
+              </Text>
+            </Space>
+          </div>
 
-            {/* 操作按钮 */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <Button onClick={handleCancel} disabled={submitting}>
-                取消
-              </Button>
-              <Button
-                type="primary"
-                onClick={handleSubmit}
-                loading={submitting}
-                disabled={mode === 'create' ? !formKbName.trim() : false}
-                icon={mode === 'create' ? <PlusOutlined /> : <DatabaseOutlined />}
-                style={{ background: '#2563EB', borderColor: '#2563EB' }}
-              >
-                {mode === 'create' ? '创建知识库' : '保存更改'}
-              </Button>
-            </div>
-          </Space>
-        </div>
-      </Modal>
-    </>
+          {/* 操作按钮 */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 12,
+            paddingTop: 8
+          }}>
+            <Button size="large" onClick={handleCancel} disabled={submitting}>
+              取消
+            </Button>
+            <Button
+              size="large"
+              type="primary"
+              theme="solid"
+              onClick={handleSubmit}
+              loading={submitting}
+              disabled={mode === 'create' ? !formKbName.trim() : false}
+              icon={mode === 'create' ? <IconPlus /> : <IconArchive />}
+            >
+              {mode === 'create' ? '创建知识库' : '保存更改'}
+            </Button>
+          </div>
+        </Space>
+      </div>
+    </Sidebar.Container>
   );
 }

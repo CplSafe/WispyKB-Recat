@@ -1216,3 +1216,101 @@
   width: 18px !important;
   border-radius: 3px !important;
 }
+
+/* ==================== AIChatDialogue Styles ==================== */
+.aiDialogue {
+  /* Semi-UI AIChatDialogue 自定义样式 */
+}
+
+/* 覆盖 Semi-UI 默认样式以适配现有设计 */
+.aiDialogue :global(.semi-chat-dialogue-wrapper) {
+  margin-bottom: 16px;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-container) {
+  max-width: 85%;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-wrapper-right) .semi-chat-dialogue-container {
+  margin-left: auto;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-content) {
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-avatar) {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-inner) {
+  max-width: 100%;
+}
+
+/* 代码块样式覆盖 */
+.aiDialogue :global(.semi-markdown-render pre) {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.aiDialogue :global(.semi-markdown-render code) {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 13px;
+}
+
+/* 图片样式 */
+.aiDialogue :global(.semi-chat-dialogue-content img) {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-content img:hover) {
+  transform: scale(1.01);
+}
+
+/* 操作按钮区域 */
+.aiDialogue :global(.semi-chat-dialogue-action) {
+  margin-top: 6px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-wrapper:hover) .semi-chat-dialogue-action {
+  opacity: 1;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-action button) {
+  color: #666;
+  font-size: 14px;
+  height: 24px;
+  width: 24px;
+  padding: 0;
+  min-width: 24px;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-action button:hover) {
+  color: #1677ff;
+}
+
+.aiDialogue :global(.semi-chat-dialogue-action button.semi-button-active) {
+  color: #1677ff;
+}
+
+/* 移动端优化 */
+@media (max-width: 767px) {
+  .aiDialogue :global(.semi-chat-dialogue-container) {
+    max-width: 90%;
+  }
+
+  .aiDialogue :global(.semi-chat-dialogue-content img) {
+    max-height: 250px;
+  }
+}

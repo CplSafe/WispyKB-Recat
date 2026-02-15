@@ -7,21 +7,22 @@ import {
   Typography,
   Space,
   Empty,
-  Spin,
+  Skeleton,
   Button,
-} from 'antd';
+  Tag,
+} from '@douyinfe/semi-ui';
 import {
-  DatabaseOutlined,
-  RobotOutlined,
-  FileTextOutlined,
-  ArrowRightOutlined,
-  LikeOutlined,
-  DislikeOutlined,
-  RiseOutlined,
-  FallOutlined,
-  CommentOutlined,
-  MessageOutlined,
-} from '@ant-design/icons';
+  IconArchive,
+  IconServerStroked,
+  IconFile,
+  IconArrowRight,
+  IconLikeThumb,
+  IconDislikeThumb,
+  IconArrowUp,
+  IconArrowDown,
+  IconComment,
+  IconQuote,
+} from '@douyinfe/semi-icons';
 import { useAppStore } from '../store';
 import api from '../lib/api';
 
@@ -54,66 +55,45 @@ function StatCard({
   title,
   value,
   icon,
-  color,
+  bgColor,
   trend,
 }: {
   title: string;
   value: number;
   icon: React.ReactNode;
-  color: string;
+  bgColor: string;
   trend?: number;
 }) {
   return (
     <Card
-      variant="borderless"
-      style={{
-        background: '#FFFFFF',
-        borderRadius: 12,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        transition: 'all 0.2s',
-      }}
-      styles={{ body: { padding: '20px 24px' } }}
       hoverable
-      onMouseEnter={(e: any) => {
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-        e.currentTarget.style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={(e: any) => {
-        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
-        e.currentTarget.style.transform = 'translateY(0)';
-      }}
+      styles={{ body: { padding: '20px 24px' } }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <Text style={{ fontSize: 13, color: '#64748B', fontWeight: 500 }}>{title}</Text>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <div style={{ fontSize: 28, fontWeight: 600, color: '#1E293B' }}>
+        <Space vertical spacing={4} align="start">
+          <Text type="tertiary" size="small">{title}</Text>
+          <Space spacing={8} align="center">
+            <Title heading={4} style={{ margin: 0 }}>
               {value.toLocaleString()}
-            </div>
+            </Title>
             {trend !== undefined && (
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 2,
-                fontSize: 12,
-                fontWeight: 500,
-                color: trend >= 0 ? '#10B981' : '#EF4444',
-                background: trend >= 0 ? '#DCFCE7' : '#FEE2E2',
-                padding: '2px 6px',
-                borderRadius: 4,
-              }}>
-                {trend >= 0 ? <RiseOutlined /> : <FallOutlined />}
+              <Tag
+                size="small"
+                shape="circle"
+                color={trend >= 0 ? 'green' : 'red'}
+                prefixIcon={trend >= 0 ? <IconArrowUp /> : <IconArrowDown />}
+              >
                 {Math.abs(trend)}%
-              </span>
+              </Tag>
             )}
-          </div>
-        </div>
+          </Space>
+        </Space>
         <div
           style={{
             width: 48,
             height: 48,
             borderRadius: 12,
-            background: `${color}15`,
+            background: bgColor,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -182,7 +162,7 @@ function CircularProgress({
   percent,
   size = 56,
   strokeWidth = 5,
-  color = '#10B981'
+  color = 'var(--semi-color-success)'
 }: {
   percent: number;
   size?: number;
@@ -200,7 +180,7 @@ function CircularProgress({
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="#F1F5F9"
+        stroke="var(--semi-color-bg-2)"
         strokeWidth={strokeWidth}
       />
       <circle
@@ -219,7 +199,46 @@ function CircularProgress({
   );
 }
 
-// App Usage Card Component - 重新设计
+// Feedback stat card - DRY helper
+function FeedbackStatCard({
+  label,
+  value,
+  icon,
+  bgColor,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  bgColor: string;
+}) {
+  return (
+    <Card styles={{ body: { padding: '20px' } }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            background: bgColor,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {icon}
+        </div>
+        <Space vertical spacing={2} align="start">
+          <Text type="tertiary">{label}</Text>
+          <Title heading={4} style={{ margin: 0 }}>
+            {value.toLocaleString()}
+          </Title>
+        </Space>
+      </div>
+    </Card>
+  );
+}
+
+// App Usage Card Component
 function AppUsageCard({
   app,
   onClick,
@@ -249,9 +268,9 @@ function AppUsageCard({
 
   // 根据满意度选择颜色
   const getSatisfactionColor = (rate: number) => {
-    if (rate >= 70) return '#10B981';
-    if (rate >= 50) return '#F59E0B';
-    return '#EF4444';
+    if (rate >= 70) return 'var(--semi-color-success)';
+    if (rate >= 50) return 'var(--semi-color-warning)';
+    return 'var(--semi-color-danger)';
   };
 
   // 使用真实趋势数据或生成基于当前数据的小趋势图
@@ -266,28 +285,10 @@ function AppUsageCard({
 
   return (
     <Card
-      variant="outlined"
-      style={{
-        background: '#FFFFFF',
-        borderRadius: 16,
-        borderColor: '#E2E8F0',
-        cursor: 'pointer',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        height: '100%',
-      }}
-      styles={{ body: { padding: '20px' } }}
       hoverable
+      style={{ cursor: 'pointer', height: '100%' }}
+      styles={{ body: { padding: '20px' } }}
       onClick={onClick}
-      onMouseEnter={(e: any) => {
-        e.currentTarget.style.borderColor = '#2563EB';
-        e.currentTarget.style.boxShadow = '0 8px 24px rgba(37,99,235,0.12)';
-        e.currentTarget.style.transform = 'translateY(-4px)';
-      }}
-      onMouseLeave={(e: any) => {
-        e.currentTarget.style.borderColor = '#E2E8F0';
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.transform = 'translateY(0)';
-      }}
     >
       {/* 头部：应用名称和满意度 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -297,28 +298,27 @@ function AppUsageCard({
               width: 44,
               height: 44,
               borderRadius: 12,
-              background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)',
+              background: 'linear-gradient(135deg, var(--semi-color-primary) 0%, var(--semi-color-primary-active) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
             }}
           >
-            <RobotOutlined style={{ color: 'white', fontSize: 18 }} />
+            <IconServerStroked style={{ color: 'var(--semi-color-white)', fontSize: 18 }} />
           </div>
-          <div>
-            <Text strong style={{ fontSize: 15, color: '#1E293B', display: 'block' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Text strong style={{ fontSize: 15, display: 'block' }}>
               {app.name}
             </Text>
             {app.description && (
-              <Text style={{ fontSize: 12, color: '#94A3B8' }} ellipsis>
+              <Text type="quaternary" size="small" ellipsis>
                 {app.description}
               </Text>
             )}
           </div>
         </div>
 
-        {/* 满意度环形图 - 修复布局 */}
+        {/* 满意度环形图 */}
         {satisfactionRate !== null && totalFeedback > 0 ? (
           <div style={{ position: 'relative', width: 48, height: 48 }}>
             <CircularProgress
@@ -346,13 +346,13 @@ function AppUsageCard({
               width: 48,
               height: 48,
               borderRadius: '50%',
-              background: '#F8FAFC',
+              background: 'var(--semi-color-bg-1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <LikeOutlined style={{ color: '#CBD5E1', fontSize: 16 }} />
+            <IconLikeThumb style={{ color: 'var(--semi-color-text-3)', fontSize: 16 }} />
           </div>
         )}
       </div>
@@ -360,25 +360,19 @@ function AppUsageCard({
       {/* 迷你趋势图 */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <Text style={{ fontSize: 12, color: '#64748B' }}>消息趋势</Text>
+          <Text type="tertiary" size="small">消息趋势</Text>
           {sparklineData.length > 1 && (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 11,
-              fontWeight: 500,
-              color: trendPercent >= 0 ? '#10B981' : '#EF4444',
-              background: trendPercent >= 0 ? '#DCFCE7' : '#FEE2E2',
-              padding: '2px 8px',
-              borderRadius: 12,
-            }}>
-              {trendPercent >= 0 ? <RiseOutlined style={{ fontSize: 10 }} /> : <FallOutlined style={{ fontSize: 10 }} />}
+            <Tag
+              size="small"
+              shape="circle"
+              color={trendPercent >= 0 ? 'green' : 'red'}
+              prefixIcon={trendPercent >= 0 ? <IconArrowUp style={{ fontSize: 10 }} /> : <IconArrowDown style={{ fontSize: 10 }} />}
+            >
               {Math.abs(trendPercent)}%
-            </span>
+            </Tag>
           )}
         </div>
-        <MiniSparkline data={sparklineData} color="#2563EB" />
+        <MiniSparkline data={sparklineData} color="var(--semi-color-primary)" />
       </div>
 
       {/* 数据统计行 */}
@@ -388,13 +382,13 @@ function AppUsageCard({
             textAlign: 'center',
             padding: '12px 8px',
             borderRadius: 10,
-            background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+            background: 'var(--semi-color-primary-light-default)',
           }}>
-            <CommentOutlined style={{ color: '#3B82F6', fontSize: 16, marginBottom: 6 }} />
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1E293B' }}>
+            <IconComment style={{ color: 'var(--semi-color-primary)', fontSize: 16, marginBottom: 6 }} />
+            <Title heading={5} style={{ margin: 0 }}>
               {app.conversation_count}
-            </div>
-            <Text style={{ fontSize: 11, color: '#64748B' }}>对话</Text>
+            </Title>
+            <Text type="tertiary" size="small">对话</Text>
           </div>
         </Col>
         <Col span={8}>
@@ -402,13 +396,13 @@ function AppUsageCard({
             textAlign: 'center',
             padding: '12px 8px',
             borderRadius: 10,
-            background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
+            background: 'var(--semi-color-tertiary-light-default)',
           }}>
-            <MessageOutlined style={{ color: '#8B5CF6', fontSize: 16, marginBottom: 6 }} />
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1E293B' }}>
+            <IconQuote style={{ color: 'var(--semi-color-tertiary)', fontSize: 16, marginBottom: 6 }} />
+            <Title heading={5} style={{ margin: 0 }}>
               {app.message_count}
-            </div>
-            <Text style={{ fontSize: 11, color: '#64748B' }}>消息</Text>
+            </Title>
+            <Text type="tertiary" size="small">消息</Text>
           </div>
         </Col>
         <Col span={8}>
@@ -417,18 +411,18 @@ function AppUsageCard({
             padding: '12px 8px',
             borderRadius: 10,
             background: totalFeedback > 0 ?
-              (likes >= dislikes ? 'linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)' : 'linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)')
-              : 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
+              (likes >= dislikes ? 'var(--semi-color-success-light-default)' : 'var(--semi-color-danger-light-default)')
+              : 'var(--semi-color-fill-0)',
           }}>
-            <LikeOutlined style={{
-              color: totalFeedback > 0 ? (likes >= dislikes ? '#10B981' : '#EF4444') : '#CBD5E1',
+            <IconLikeThumb style={{
+              color: totalFeedback > 0 ? (likes >= dislikes ? 'var(--semi-color-success)' : 'var(--semi-color-danger)') : 'var(--semi-color-text-3)',
               fontSize: 16,
               marginBottom: 6
             }} />
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1E293B' }}>
+            <Title heading={5} style={{ margin: 0 }}>
               {totalFeedback}
-            </div>
-            <Text style={{ fontSize: 11, color: '#94A3B8' }}>反馈</Text>
+            </Title>
+            <Text type="quaternary" size="small">反馈</Text>
           </div>
         </Col>
       </Row>
@@ -514,236 +508,160 @@ function DashboardPage() {
     {
       title: '知识库',
       value: stats.totalKnowledgeBases,
-      icon: <DatabaseOutlined style={{ fontSize: 20, color: '#7C3AED' }} />,
-      color: '#7C3AED',
+      icon: <IconArchive style={{ fontSize: 20, color: 'var(--semi-color-primary)' }} />,
+      bgColor: 'var(--semi-color-primary-light-default)',
       trend: 8,
     },
     {
       title: '文档数',
       value: stats.totalDocuments,
-      icon: <FileTextOutlined style={{ fontSize: 20, color: '#2563EB' }} />,
-      color: '#2563EB',
+      icon: <IconFile style={{ fontSize: 20, color: 'var(--semi-color-primary)' }} />,
+      bgColor: 'var(--semi-color-primary-light-default)',
       trend: 12,
     },
     {
       title: '应用数',
       value: stats.totalApplications,
-      icon: <RobotOutlined style={{ fontSize: 20, color: '#059669' }} />,
-      color: '#059669',
+      icon: <IconServerStroked style={{ fontSize: 20, color: 'var(--semi-color-success)' }} />,
+      bgColor: 'var(--semi-color-success-light-default)',
       trend: -3,
     },
     {
       title: '总对话',
       value: stats.totalConversations,
-      icon: <CommentOutlined style={{ fontSize: 20, color: '#EA580C' }} />,
-      color: '#EA580C',
+      icon: <IconComment style={{ fontSize: 20, color: 'var(--semi-color-warning)' }} />,
+      bgColor: 'var(--semi-color-warning-light-default)',
       trend: 24,
+    },
+  ];
+
+  const feedbackCards = [
+    {
+      label: '收到点赞',
+      value: stats.totalLikes,
+      icon: <IconLikeThumb style={{ fontSize: 20, color: 'var(--semi-color-success)' }} />,
+      bgColor: 'var(--semi-color-success-light-default)',
+    },
+    {
+      label: '收到点踩',
+      value: stats.totalDislikes,
+      icon: <IconDislikeThumb style={{ fontSize: 20, color: 'var(--semi-color-danger)' }} />,
+      bgColor: 'var(--semi-color-danger-light-default)',
+    },
+    {
+      label: '总反馈',
+      value: stats.totalFeedback,
+      icon: <IconQuote style={{ fontSize: 20, color: 'var(--semi-color-primary)' }} />,
+      bgColor: 'var(--semi-color-primary-light-default)',
     },
   ];
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}>
-        <Spin size="large" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <Skeleton.Title style={{ width: 200, height: 28 }} />
+        <div style={{ display: 'flex', gap: 16 }}>
+          {[1, 2, 3, 4].map(i => <Skeleton.Image key={i} style={{ flex: 1, height: 120 }} />)}
+        </div>
+        <Skeleton.Title style={{ width: 150, height: 24 }} />
+        <div style={{ display: 'flex', gap: 16 }}>
+          {[1, 2, 3, 4].map(i => <Skeleton.Image key={i} style={{ flex: 1, height: 200 }} />)}
+        </div>
       </div>
     );
   }
 
   return (
-    <Space orientation="vertical" size={24} style={{ width: '100%' }}>
-        {/* Welcome Section */}
-        <div>
-          <Title level={3} style={{ margin: 0, color: '#1E293B', fontSize: 20, fontWeight: 600 }}>
-            欢迎回来，{user?.username || '用户'} 👋
-          </Title>
-          <Text style={{ color: '#64748B', fontSize: 13 }}>
-            这是您的仪表盘概览
-          </Text>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: '100%' }}>
+      {/* Welcome Section */}
+      <div>
+        <Title heading={3} style={{ margin: 0 }}>
+          欢迎回来，{user?.username || '用户'}
+        </Title>
+        <Text type="tertiary">
+          这是您的仪表盘概览
+        </Text>
+      </div>
 
-        {/* Stats Cards */}
+      {/* Stats Cards */}
+      <Row gutter={[16, 16]}>
+        {statCards.map((card, index) => (
+          <Col xs={24} sm={12} lg={6} key={index}>
+            <StatCard
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              bgColor={card.bgColor}
+              trend={card.trend}
+            />
+          </Col>
+        ))}
+      </Row>
+
+      {/* Recent Applications */}
+      {stats.appUsage && stats.appUsage.length > 0 && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Title heading={4} style={{ margin: 0 }}>
+              热门应用
+            </Title>
+            <Button
+              type="tertiary"
+              icon={<IconArrowRight />}
+              onClick={() => navigate('/apps')}
+              style={{ padding: 0 }}
+            >
+              查看全部
+            </Button>
+          </div>
+          <Row gutter={[16, 16]}>
+            {stats.appUsage.slice(0, 4).map((app) => (
+              <Col xs={24} sm={12} lg={6} key={app.id}>
+                <AppUsageCard
+                  app={app}
+                  dailyTrendData={app.daily_trend}
+                  onClick={() => navigate(`/apps/${app.id}/analytics`)}
+                />
+              </Col>
+            ))}
+          </Row>
+        </div>
+      )}
+
+      {/* Feedback Stats */}
+      {(stats.totalLikes > 0 || stats.totalDislikes > 0 || stats.totalFeedback > 0) && (
         <Row gutter={[16, 16]}>
-          {statCards.map((card, index) => (
-            <Col xs={24} sm={12} lg={6} key={index}>
-              <StatCard
-                title={card.title}
+          {feedbackCards.map((card) => (
+            <Col xs={24} sm={8} key={card.label}>
+              <FeedbackStatCard
+                label={card.label}
                 value={card.value}
                 icon={card.icon}
-                color={card.color}
-                trend={card.trend}
+                bgColor={card.bgColor}
               />
             </Col>
           ))}
         </Row>
+      )}
 
-        {/* Recent Applications */}
-        {stats.appUsage && stats.appUsage.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Title level={4} style={{ margin: 0, color: '#1E293B', fontSize: 16 }}>
-                热门应用
-              </Title>
-              <Button
-                type="link"
-                icon={<ArrowRightOutlined />}
-                onClick={() => navigate('/apps')}
-                style={{ padding: 0, fontSize: 13 }}
-              >
-                查看全部
-              </Button>
-            </div>
-            <Row gutter={[16, 16]}>
-              {stats.appUsage.slice(0, 4).map((app) => (
-                <Col xs={24} sm={12} lg={6} key={app.id}>
-                  <AppUsageCard
-                    app={app}
-                    dailyTrendData={app.daily_trend}
-                    onClick={() => navigate(`/apps/${app.id}/analytics`)}
-                  />
-                </Col>
-              ))}
-            </Row>
-          </div>
-        )}
-
-        {/* Feedback Stats */}
-        {(stats.totalLikes > 0 || stats.totalDislikes > 0 || stats.totalFeedback > 0) && (
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={8}>
-              <Card
-                variant="borderless"
-                style={{
-                  background: '#FFFFFF',
-                  borderRadius: 12,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                }}
-                styles={{ body: { padding: '20px' } }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 12,
-                      background: '#DCFCE7',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <LikeOutlined style={{ fontSize: 20, color: '#10B981' }} />
-                  </div>
-                  <div>
-                    <Text style={{ fontSize: 13, color: '#64748B', display: 'block' }}>
-                      收到点赞
-                    </Text>
-                    <Text style={{ fontSize: 24, fontWeight: 600, color: '#1E293B' }}>
-                      {stats.totalLikes.toLocaleString()}
-                    </Text>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card
-                variant="borderless"
-                style={{
-                  background: '#FFFFFF',
-                  borderRadius: 12,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                }}
-                styles={{ body: { padding: '20px' } }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 12,
-                      background: '#FEE2E2',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <DislikeOutlined style={{ fontSize: 20, color: '#EF4444' }} />
-                  </div>
-                  <div>
-                    <Text style={{ fontSize: 13, color: '#64748B', display: 'block' }}>
-                      收到点踩
-                    </Text>
-                    <Text style={{ fontSize: 24, fontWeight: 600, color: '#1E293B' }}>
-                      {stats.totalDislikes.toLocaleString()}
-                    </Text>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card
-                variant="borderless"
-                style={{
-                  background: '#FFFFFF',
-                  borderRadius: 12,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                }}
-                styles={{ body: { padding: '20px' } }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 12,
-                      background: '#DBEAFE',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <MessageOutlined style={{ fontSize: 20, color: '#3B82F6' }} />
-                  </div>
-                  <div>
-                    <Text style={{ fontSize: 13, color: '#64748B', display: 'block' }}>
-                      总反馈
-                    </Text>
-                    <Text style={{ fontSize: 24, fontWeight: 600, color: '#1E293B' }}>
-                      {stats.totalFeedback.toLocaleString()}
-                    </Text>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-        )}
-
-        {/* Empty State when no data */}
-        {stats.appUsage.length === 0 && (
-          <Card
-            variant="borderless"
-            style={{
-              background: '#FFFFFF',
-              borderRadius: 12,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-            }}
-            styles={{ body: { padding: '60px 20px' } }}
-          >
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <Space orientation="vertical" size={8}>
-                  <Text style={{ color: '#64748B', fontSize: 14 }}>
-                    还没有任何应用数据
-                  </Text>
-                  <Button type="primary" onClick={() => navigate('/apps')}>
-                    创建第一个应用
-                  </Button>
-                </Space>
-              }
-            />
-          </Card>
-        )}
-      </Space>
+      {/* Empty State when no data */}
+      {stats.appUsage.length === 0 && (
+        <Card styles={{ body: { padding: '60px 20px' } }}>
+          <Empty
+            description={
+              <Space vertical spacing={8}>
+                <Text type="tertiary">
+                  还没有任何应用数据
+                </Text>
+                <Button type="primary" onClick={() => navigate('/apps')}>
+                  创建第一个应用
+                </Button>
+              </Space>
+            }
+          />
+        </Card>
+      )}
+    </div>
   );
 }
 

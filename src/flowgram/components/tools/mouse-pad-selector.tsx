@@ -12,7 +12,7 @@ import { IconMouse, IconMouseTool } from '../../assets/icon-mouse';
 
 import './mouse-pad-selector.less';
 
-const { Title, Paragraph } = Typography;
+const { Paragraph } = Typography;
 
 export enum InteractiveType {
   Mouse = 'MOUSE',
@@ -43,12 +43,11 @@ const InteractiveItem: React.FC<{
     <div className={`mouse-pad-option-icon ${selected ? 'mouse-pad-option-icon-selected' : ''}`}>
       {icon}
     </div>
-    <Title
-      heading={6}
+    <h6
       className={`mouse-pad-option-title ${selected ? 'mouse-pad-option-title-selected' : ''}`}
     >
       {title}
-    </Title>
+    </h6>
     <Paragraph
       type="tertiary"
       className={`mouse-pad-option-subTitle ${
@@ -81,7 +80,7 @@ export const MousePadSelector: React.FC<
       spacing={20}
       content={
         <div className={'ui-mouse-pad-selector-popover'}>
-          <Typography.Title heading={4}>{'Interaction mode'}</Typography.Title>
+          <h4>{'Interaction mode'}</h4>
           <div className={'ui-mouse-pad-selector-popover-options'}>
             <InteractiveItem
               title={'Mouse-Friendly'}

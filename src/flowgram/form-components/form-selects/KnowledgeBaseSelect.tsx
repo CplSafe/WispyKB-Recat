@@ -1,0 +1,77 @@
+/**
+ * Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
+ * SPDX-License-Identifier: MIT
+ */
+
+import { useEffect, useState } from 'react';
+import { Select } from '@douyinfe/semi-ui';
+
+import { getWorkflowApi } from '../../services/workflow-api';
+import { i18n } from '@flowgram/i18n';
+
+interface KnowledgeBaseOption {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export const KnowledgeBaseSelect = ({
+  value,
+  onChange,
+  readonly,
+}: {
+  value: any;
+  onChange: (val: any) => void;
+  readonly?: boolean;
+}) => {
+  const [loading, setLoading] = useState(true);
+  const [options, setOptions] = useState<{ label: string; value: string }[]>([]);
+
+  useEffect(() => {
+    const loadKnowledgeBases = async () => {
+      try {
+        const api = getWorkflowApi();
+        const result = await api.getKnowledgeBases();
+        if (result.success && result.data) {
+          setOptions(
+            result.data.map((kb: KnowledgeBaseOption) => ({
+              label: kb.name,
+              value: kb.id,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Failed to load knowledge bases:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadKnowledgeBases();
+  }, []);
+
+  // Extract the actual content value if value is an object with type/content
+  const actualValue = value?.content !== undefined ? value.content : value;
+
+  // Handle change to update in the FlowGram value format
+  const handleChange = (newValue: string) => {
+    if (typeof value === 'object' && value?.type !== undefined) {
+      onChange({ ...value, content: newValue });
+    } else {
+      onChange(newValue);
+    }
+  };
+
+  return (
+    <Select
+      placeholder={i18n.t('selectKnowledgeBase')}
+      loading={loading}
+      disabled={readonly}
+      value={actualValue}
+      onChange={handleChange}
+      optionList={options}
+      filter
+      style={{ width: '100%' }}
+    />
+  );
+};

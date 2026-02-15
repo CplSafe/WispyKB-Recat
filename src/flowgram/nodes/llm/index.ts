@@ -33,19 +33,19 @@ export const LLMNodeRegistry: FlowNodeRegistry = {
         inputsValues: {
           modelName: {
             type: 'constant',
-            content: 'gpt-3.5-turbo',
+            content: 'deepseek-r1:8b',
           },
           apiKey: {
             type: 'constant',
-            content: 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+            content: 'ollama',
           },
           apiHost: {
             type: 'constant',
-            content: 'https://mock-ai-url/api/v3',
+            content: 'http://localhost:11434/v1',
           },
           temperature: {
             type: 'constant',
-            content: 0.5,
+            content: 0.7,
           },
           systemPrompt: {
             type: 'template',

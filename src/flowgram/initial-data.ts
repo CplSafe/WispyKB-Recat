@@ -6,6 +6,45 @@
 import { FlowDocumentJSON } from './typings';
 import { i18n } from './i18n';
 
+/**
+ * 获取空画布的初始数据（只有开始节点）
+ */
+export const getEmptyInitialData = (): FlowDocumentJSON => ({
+  nodes: [
+    {
+      id: 'start_0',
+      type: 'start',
+      meta: {
+        position: {
+          x: 300,
+          y: 200,
+        },
+      },
+      data: {
+        title: i18n.t('start'),
+        outputs: {
+          type: 'object',
+          properties: {
+            query: {
+              type: 'string',
+              default: '',
+            },
+          },
+        },
+      },
+    },
+  ],
+  edges: [],
+  globalVariable: {
+    type: 'object',
+    required: [],
+    properties: {},
+  },
+});
+
+/**
+ * 获取演示用的初始数据（包含多个节点的示例）
+ */
 export const getInitialData = (): FlowDocumentJSON => ({
   nodes: [
     {

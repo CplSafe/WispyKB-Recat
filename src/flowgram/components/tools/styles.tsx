@@ -10,8 +10,10 @@ import { IconMinimap } from '../../assets/icon-minimap';
 export const ToolContainer = styled.div`
   position: absolute;
   bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  justify-content: left;
+  justify-content: center;
   min-width: 360px;
   pointer-events: none;
   gap: 8px;

@@ -1,47 +1,29 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Avatar, Dropdown, Typography } from 'antd';
-import { useState, useEffect } from 'react';
+import { Layout, Nav, Avatar, Dropdown, Typography, Button } from '@douyinfe/semi-ui';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  HomeOutlined,
-  DatabaseOutlined,
-  RobotOutlined,
-  SettingOutlined,
-  LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  UserOutlined,
-  SafetyOutlined,
-  KeyOutlined,
-  UsergroupAddOutlined,
-  SecurityScanOutlined,
-  BuildOutlined,
-  HistoryOutlined,
-  ControlOutlined,
-  ApiOutlined,
-  CloudServerOutlined,
-  LockOutlined,
-  DatabaseOutlined as VectorOutlined,
-  AppstoreOutlined,
-  BranchesOutlined,
-} from '@ant-design/icons';
+  IconHome,
+  IconArchive,
+  IconServerStroked,
+  IconSetting,
+  IconExit,
+  IconUser,
+  IconSafe,
+  IconKey,
+  IconShield,
+  IconHelm,
+  IconClock,
+  IconServer,
+  IconCode,
+  IconCloud,
+  IconLock,
+
+  IconLanguage,
+} from '@douyinfe/semi-icons';
 import { useAppStore } from '../../store';
 
 const { Sider, Header, Content } = Layout;
 const { Text } = Typography;
-
-// 系统管理菜单项
-const SYSTEM_ADMIN_ITEMS = [
-  { key: '/admin/users', icon: <UsergroupAddOutlined />, label: '用户管理' },
-  { key: '/admin/roles', icon: <SecurityScanOutlined />, label: '角色管理' },
-  { key: '/admin/departments', icon: <BuildOutlined />, label: '部门管理' },
-  { key: '/admin/audit', icon: <HistoryOutlined />, label: '审计日志' },
-  { key: '/admin/system', icon: <ControlOutlined />, label: '系统配置' },
-  { key: '/admin/mcp', icon: <AppstoreOutlined />, label: 'MCP 配置' },
-  { key: '/admin/integrations', icon: <CloudServerOutlined />, label: '集成配置' },
-  { key: '/admin/security', icon: <LockOutlined />, label: '安全设置' },
-  { key: '/admin/api', icon: <ApiOutlined />, label: 'API 设置' },
-  { key: '/admin/vector-store', icon: <VectorOutlined />, label: '向量存储' },
-];
 
 function MainLayout() {
   const navigate = useNavigate();
@@ -52,110 +34,64 @@ function MainLayout() {
     toggleSidebar,
     clear,
     systemConfig,
+    locale,
+    setLocale,
   } = useAppStore();
 
-  // 菜单展开状态
   const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>(['/']);
 
-  // 工作流页面全屏显示
-  const isWorkflowPage = location.pathname === '/workflow' || location.pathname.startsWith('/workflow');
+  const isWorkflowPage = location.pathname.startsWith('/workflow');
 
-  // 当路径变化时更新展开状态
+  // Sync selectedKeys and openKeys from route
   useEffect(() => {
-    // 当进入系统管理子页面时自动展开菜单
-    if (location.pathname.startsWith('/admin/')) {
+    const path = location.pathname;
+    let key = path;
+    if (path === '/' || path === '/dashboard') key = '/';
+    else if (path.startsWith('/apps')) key = '/apps';
+    else if (path === '/knowledge' || path.startsWith('/knowledge/')) key = '/knowledge';
+    else if (path === '/settings') key = '/settings';
+
+    setSelectedKeys([key]);
+
+    if (path.startsWith('/admin/')) {
       setOpenKeys(['system-admin']);
     } else {
       setOpenKeys([]);
     }
   }, [location.pathname]);
 
-  // 获取当前选中的菜单key
-  const getSelectedKey = () => {
-    const path = location.pathname;
-    // 精确匹配
-    if (path === '/' || path === '/dashboard') return '/';
-    if (path === '/knowledge') return '/knowledge';
-    if (path === '/apps') return '/apps';
-    if (path.startsWith('/apps/')) return '/apps';
-    if (path === '/workflow') return '/workflow';
-    if (path === '/settings') return '/settings';
-    // 系统管理子菜单
-    if (SYSTEM_ADMIN_ITEMS.some(item => path === item.key)) {
-      return path;
+  // Memoize items to prevent Nav re-render issues
+  // Sub-items use plain strings (no icons) so Semi Nav auto-indents them
+  const items = useMemo(() => {
+    const mainItems: any[] = [
+      { itemKey: '/', icon: <IconHome />, text: '仪表盘' },
+      { itemKey: '/knowledge', icon: <IconArchive />, text: '知识库' },
+      { itemKey: '/apps', icon: <IconServerStroked />, text: 'AI 应用' },
+    ];
+
+    if (user?.role === 'super_admin') {
+      mainItems.push({
+        itemKey: 'system-admin',
+        icon: <IconSetting />,
+        text: '系统管理',
+        items: [
+          { itemKey: '/admin/users', icon: <IconUser />, text: '用户管理' },
+          { itemKey: '/admin/roles', icon: <IconShield />, text: '角色管理' },
+          { itemKey: '/admin/departments', icon: <IconHelm />, text: '部门管理' },
+          { itemKey: '/admin/audit', icon: <IconClock />, text: '审计日志' },
+          { itemKey: '/admin/system', icon: <IconServer />, text: '系统配置' },
+          { itemKey: '/admin/mcp', icon: <IconArchive />, text: 'MCP 配置' },
+          { itemKey: '/admin/integrations', icon: <IconCloud />, text: '集成配置' },
+          { itemKey: '/admin/security', icon: <IconLock />, text: '安全设置' },
+          { itemKey: '/admin/api', icon: <IconCode />, text: 'API 设置' },
+          { itemKey: '/admin/vector-store', icon: <IconArchive />, text: '向量存储' },
+        ],
+      });
     }
-    return path;
-  };
 
-  // 主菜单项
-  const mainMenuItems = [
-    {
-      key: '/',
-      icon: <HomeOutlined />,
-      label: '仪表盘',
-    },
-    {
-      key: '/knowledge',
-      icon: <DatabaseOutlined />,
-      label: '知识库',
-    },
-    {
-      key: '/apps',
-      icon: <RobotOutlined />,
-      label: 'AI 应用',
-    },
-    {
-      key: '/workflow',
-      icon: <BranchesOutlined />,
-      label: '工作流编排',
-    },
-  ];
-
-  // 系统管理菜单（仅超级管理员可见）
-  const systemAdminMenuItem = user?.role === 'super_admin' ? [
-    {
-      key: 'system-admin',
-      icon: <SettingOutlined />,
-      label: '系统管理',
-      children: SYSTEM_ADMIN_ITEMS,
-    },
-  ] : [];
-
-  const allMenuItems = [...mainMenuItems, ...systemAdminMenuItem];
-
-  // 用户下拉菜单
-  const userDropdownItems = [
-    {
-      key: 'profile',
-      icon: <UserOutlined />,
-      label: '个人资料',
-      onClick: () => navigate('/settings'),
-    },
-    {
-      key: 'security',
-      icon: <SafetyOutlined />,
-      label: '安全设置',
-      onClick: () => navigate('/settings'),
-    },
-    {
-      key: 'api',
-      icon: <KeyOutlined />,
-      label: 'API 设置',
-      onClick: () => navigate('/settings'),
-    },
-    { type: 'divider' as const },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: '退出登录',
-      onClick: () => {
-        clear();
-        localStorage.removeItem('access_token');
-        sessionStorage.removeItem('access_token');
-        navigate('/login');
-      },
-    },
-  ];
+    return mainItems;
+  }, [user?.role]);
 
   const userInitials = user?.username
     ?.split(' ')
@@ -164,194 +100,171 @@ function MainLayout() {
     .toUpperCase()
     .slice(0, 2) || 'U';
 
+  function getAvatarSrc(): string | undefined {
+    if (!user?.avatar) return undefined;
+    if (user.avatar.startsWith('http')) return user.avatar;
+    return `${window.location.origin}${user.avatar}`;
+  }
+
+  const onCollapseChange = useCallback((isCollapsed: boolean) => {
+    if (isCollapsed !== sidebarCollapsed) {
+      toggleSidebar();
+    }
+  }, [sidebarCollapsed, toggleSidebar]);
+
+  const onSelect = useCallback((data: any) => {
+    const key = String(data.itemKey);
+    setSelectedKeys([key]);
+    if (key.startsWith('/')) {
+      navigate(key);
+    }
+  }, [navigate]);
+
+  const onOpenChange = useCallback((data: any) => {
+    setOpenKeys([...data.openKeys]);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    clear();
+    localStorage.removeItem('access_token');
+    sessionStorage.removeItem('access_token');
+    navigate('/login');
+  }, [clear, navigate]);
+
+  const toggleLocale = useCallback(() => {
+    setLocale(locale === 'zh_CN' ? 'en_US' : 'zh_CN');
+  }, [locale, setLocale]);
+
+  if (isWorkflowPage) {
+    return (
+      <Layout style={{ height: '100vh' }}>
+        <Content style={{ overflow: 'hidden', height: '100vh' }}>
+          <Outlet />
+        </Content>
+      </Layout>
+    );
+  }
+
   return (
-    <Layout style={{ minHeight: '100vh', background: '#F8FAFC' }}>
-      {/* 左侧边栏 - 工作流页面隐藏 */}
-      {!isWorkflowPage && (
-        <div
-          style={{
-            width: sidebarCollapsed ? 80 : 240,
-            height: '100vh',
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            background: '#FFFFFF',
-            borderRight: '1px solid #E2E8F0',
-            boxShadow: '2px 0 8px rgba(0,0,0,0.02)',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 1000,
-            transition: 'width 0.2s',
+    <Layout style={{ height: '100vh' }}>
+      <Sider style={{ height: '100vh' }}>
+        <Nav
+          isCollapsed={sidebarCollapsed}
+          openKeys={openKeys}
+          selectedKeys={selectedKeys}
+          style={{ height: '100%' }}
+          limitIndent={false}
+          items={items}
+          header={{
+            logo: systemConfig?.logo
+              ? <img src={systemConfig.logo} alt="LOGO" style={{ height: 36, fontSize: 36 }} />
+              : (
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: 'var(--semi-color-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <IconArchive style={{ color: '#fff', fontSize: 16 }} />
+                </div>
+              ),
+            text: systemConfig?.siteName || 'AI 知识库',
           }}
-        >
-        {/* Logo 区域 */}
-        <div
+          footer={{
+            collapseButton: true,
+          }}
+          onCollapseChange={onCollapseChange}
+          onOpenChange={onOpenChange}
+          onSelect={onSelect}
+        />
+      </Sider>
+
+      <Layout>
+        <Header
           style={{
-            height: 56,
+            height: 52,
+            padding: '0 20px',
+            background: 'var(--semi-color-bg-0)',
+            borderBottom: '1px solid var(--semi-color-border)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-            padding: sidebarCollapsed ? 0 : '0 20px',
-            borderBottom: '1px solid #E2E8F0',
-            cursor: 'pointer',
-            flexShrink: 0,
+            justifyContent: 'flex-end',
+            gap: 12,
           }}
-          onClick={() => navigate('/')}
         >
-          {systemConfig?.logo ? (
-            <img
-              src={systemConfig.logo}
-              alt="LOGO"
-              style={{ height: 32, objectFit: 'contain', flexShrink: 0 }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: `linear-gradient(135deg, ${systemConfig?.primaryColor || '#2563EB'} 0%, ${systemConfig?.primaryColor || '#2563EB'}dd 100%)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <DatabaseOutlined style={{ color: 'white', fontSize: 16 }} />
-            </div>
-          )}
-          {!sidebarCollapsed && (
-            <Text strong style={{ marginLeft: 12, fontSize: 15, color: '#1E293B' }}>
-              {systemConfig?.siteName || 'AI 知识库'}
-            </Text>
-          )}
-        </div>
+          {/* 中英文切换 */}
+          <Button
+            type="tertiary"
+            theme="borderless"
+            icon={<IconLanguage />}
+            onClick={toggleLocale}
+            style={{ fontSize: 13 }}
+          >
+            {locale === 'zh_CN' ? 'EN' : '中'}
+          </Button>
 
-        {/* 可滚动的菜单区域 */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-          }}
-        >
-          <Menu
-            mode="inline"
-            selectedKeys={[getSelectedKey()]}
-            openKeys={openKeys}
-            onOpenChange={setOpenKeys}
-            onClick={(e) => {
-              const key = e.key as string;
-              // 主菜单项和系统管理子菜单项都进行导航
-              if (key.startsWith('/')) {
-                navigate(key);
-              }
-            }}
-            style={{
-              borderRight: 0,
-              background: 'transparent',
-              padding: sidebarCollapsed ? '16px 0' : '16px',
-            }}
-            items={allMenuItems}
-          />
-        </div>
-
-        {/* 用户区域 - 固定在底部 */}
-        <div
-          style={{
-            padding: '12px 16px',
-            borderTop: '1px solid #E2E8F0',
-            background: '#FFFFFF',
-            flexShrink: 0,
-          }}
-        >
-          <Dropdown menu={{ items: userDropdownItems }} placement="topLeft" trigger={['click']}>
+          {/* 用户头像下拉 */}
+          <Dropdown
+            trigger="click"
+            position="bottomRight"
+            render={
+              <Dropdown.Menu>
+                <Dropdown.Item icon={<IconUser />} onClick={() => navigate('/settings')}>
+                  个人资料
+                </Dropdown.Item>
+                <Dropdown.Item icon={<IconSafe />} onClick={() => navigate('/settings')}>
+                  安全设置
+                </Dropdown.Item>
+                <Dropdown.Item icon={<IconKey />} onClick={() => navigate('/settings')}>
+                  API 设置
+                </Dropdown.Item>
+                <Dropdown.Divider />
+                <Dropdown.Item
+                  icon={<IconExit />}
+                  type="danger"
+                  onClick={handleLogout}
+                >
+                  退出登录
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            }
+          >
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
-                padding: '8px',
+                gap: 8,
+                padding: '4px 8px',
                 borderRadius: 8,
                 cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#F1F5F9';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
               }}
             >
               <Avatar
-                size={28}
-                src={
-                  user?.avatar
-                    ? user.avatar.startsWith('http')
-                      ? user.avatar
-                      : `${window.location.origin}${user.avatar}`
-                    : undefined
-                }
-                style={{ backgroundColor: '#2563EB', flexShrink: 0, fontSize: 12 }}
+                size="small"
+                src={getAvatarSrc()}
+                color="blue"
               >
                 {!user?.avatar && userInitials}
               </Avatar>
-              {!sidebarCollapsed && (
-                <Text
-                  style={{
-                    flex: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    fontSize: 13,
-                    color: '#475569',
-                    fontWeight: 500,
-                  }}
-                >
-                  {user?.username || '未登录'}
-                </Text>
-              )}
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {user?.username || '未登录'}
+              </Text>
             </div>
           </Dropdown>
-        </div>
-      </div>
-      )}
+        </Header>
 
-      {/* 主内容区域 */}
-      <Layout
-        style={{
-          marginLeft: isWorkflowPage ? 0 : (sidebarCollapsed ? 80 : 240),
-          transition: 'margin-left 0.2s',
-        }}
-      >
-        {/* 顶部 Header - 工作流页面隐藏 */}
-        {!isWorkflowPage && (
-          <Header
-            style={{
-              height: 56,
-              padding: '0 20px',
-              background: '#FFFFFF',
-              borderBottom: '1px solid #E2E8F0',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <Button
-              type="text"
-              icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={toggleSidebar}
-              style={{ fontSize: 14, width: 36, height: 36, color: '#64748B' }}
-            />
-          </Header>
-        )}
-
-        {/* 内容区域 */}
         <Content
           style={{
-            padding: isWorkflowPage ? 0 : '24px',
-            background: isWorkflowPage ? '#fff' : '#F8FAFC',
-            overflow: isWorkflowPage ? 'hidden' : 'auto',
-            height: isWorkflowPage ? '100vh' : 'auto',
+            padding: 24,
+            overflow: 'auto',
+            overflowX: 'hidden',
+            height: 'calc(100vh - 52px)',
+            background: 'var(--semi-color-bg-1)',
           }}
         >
           <Outlet />

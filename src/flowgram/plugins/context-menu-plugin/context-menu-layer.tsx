@@ -34,9 +34,9 @@ export class ContextMenuLayer extends Layer {
   @inject(WorkflowDragService) dragService: WorkflowDragService;
 
   onReady() {
+    // 禁用画布右键菜单
     this.listenPlaygroundEvent('contextmenu', (e) => {
-      if (this.config.readonlyOrDisabled) return;
-      this.openNodePanel(e);
+      // 禁止右键菜单弹出
       e.preventDefault();
       e.stopPropagation();
     });

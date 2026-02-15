@@ -20,9 +20,9 @@ export default defineConfig({
     },
   },
   output: {
-    // Use '/assets' instead of '/static' to avoid conflict with backend API proxy
-    assetPrefix: '/assets',
-    // Also set the dist path structure
+    // Use correct asset path for dev server
+    assetPrefix: '/',
+    // Set correct dist path structure
     distPath: {
       js: './static/js',
       css: './static/css',

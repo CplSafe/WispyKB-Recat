@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
-  Input,
   Card,
   Space,
   Typography,
-  message,
+  Toast,
   Tag,
   Switch,
   Row,
@@ -15,27 +14,23 @@ import {
   Divider,
   Empty,
   Modal,
-  InputNumber,
-} from 'antd';
+  Form,
+  Tabs,
+  TabPane,
+} from '@douyinfe/semi-ui';
 import {
-  ArrowLeftOutlined,
-  RobotOutlined,
-  SaveOutlined,
-  DatabaseOutlined,
-  MessageOutlined,
-  ThunderboltOutlined,
-  LockOutlined,
-  GlobalOutlined,
-  CodeOutlined,
-  ApiOutlined,
-  ToolOutlined,
-  CopyOutlined,
-  CloseOutlined,
-} from '@ant-design/icons';
+  IconArrowLeft,
+  IconServerStroked,
+  IconSave,
+  IconArchive,
+  IconBolt,
+  IconLock,
+  IconGlobe,
+  IconCode,
+  IconLink,
+  IconHelm,
+} from '@douyinfe/semi-icons';
 import api from '../lib/api';
-
-const { TextArea } = Input;
-const { Text, Title } = Typography;
 
 interface KnowledgeBase {
   id: string;
@@ -73,12 +68,12 @@ interface Application {
   similarity_threshold?: number;
 }
 
+const { Text, Title, Paragraph } = Typography;
+
 function AppDetailPage() {
   const navigate = useNavigate();
   const params = useParams();
   const appId = params.id as string;
-
-  const [messageApi, contextHolder] = message.useMessage();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -154,12 +149,12 @@ function AppDetailPage() {
         // 相似度阈值
         setSimilarityThreshold(foundApp.similarity_threshold ?? 0.5);
       } else {
-        messageApi.error('应用不存在');
+        Toast.error('应用不存在');
         navigate('/apps');
       }
     } catch (error) {
       console.error('Failed to fetch application:', error);
-      messageApi.error('加载失败');
+      Toast.error('加载失败');
       navigate('/apps');
     } finally {
       setLoading(false);
@@ -186,7 +181,7 @@ function AppDetailPage() {
 
   const handleSave = async () => {
     if (!appName.trim()) {
-      messageApi.warning('请输入应用名称');
+      Toast.warning('请输入应用名称');
       return;
     }
 
@@ -213,7 +208,7 @@ function AppDetailPage() {
         embedding_dimension: embeddingDimension,
       });
 
-      messageApi.success('保存成功');
+      Toast.success('保存成功');
       setApp({
         ...app!,
         name: appName,
@@ -221,7 +216,7 @@ function AppDetailPage() {
         mcp_config_ids: selectedMcpIds,
       });
     } catch (error) {
-      messageApi.error(typeof error === 'string' ? error : '保存失败');
+      Toast.error(typeof error === 'string' ? error : '保存失败');
     } finally {
       setSaving(false);
     }
@@ -239,11 +234,11 @@ function AppDetailPage() {
       textArea.select();
       try {
         document.execCommand('copy');
-        messageApi.success(successMessage);
+        Toast.success(successMessage);
       } catch (err) {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(text);
-          messageApi.success(successMessage);
+          Toast.success(successMessage);
         } else {
           throw new Error('复制不可用');
         }
@@ -252,7 +247,7 @@ function AppDetailPage() {
       }
     } catch (error) {
       console.error('Copy failed:', error);
-      messageApi.error('复制失败，请手动复制');
+      Toast.error('复制失败，请手动复制');
     }
   };
 
@@ -263,792 +258,580 @@ function AppDetailPage() {
     }
   };
 
+  const getFullscreenEmbedCode = () => {
+    return `<iframe src="${origin}/share/${app?.share_id || appId}" style="width:100%;height:100vh;border:none;" allow="microphone"></iframe>`;
+  };
+
+  const getFloatingEmbedCode = () => {
+    return `<script>
+(function(){
+  var btn=document.createElement('div');
+  btn.innerHTML='💬';
+  btn.style.cssText='position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--semi-color-primary,#6366f1);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:9999;';
+  var frame=document.createElement('iframe');
+  frame.src='${origin}/share/${app?.share_id || appId}';
+  frame.style.cssText='position:fixed;bottom:90px;right:20px;width:400px;height:600px;border:none;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.15);z-index:9998;display:none;';
+  frame.allow='microphone';
+  btn.onclick=function(){frame.style.display=frame.style.display==='none'?'block':'none';};
+  document.body.appendChild(frame);
+  document.body.appendChild(btn);
+})();
+</script>`;
+  };
+
+  const getInlineEmbedCode = () => {
+    return `<iframe src="${origin}/share/${app?.share_id || appId}" style="width:100%;height:600px;border:none;border-radius:12px;" allow="microphone"></iframe>`;
+  };
+
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <Spin size="large" />
-        <div style={{ marginTop: 16, color: '#64748B' }}>加载中...</div>
+        <div style={{ marginTop: 16 }}>
+          <Text type="tertiary">加载中...</Text>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      {contextHolder}
-      <div style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
-        <Space orientation="vertical" size={24} style={{ width: '100%' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Space size={16}>
-              <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate('/apps')}
-                style={{ borderRadius: 8 }}
-              >
-                返回
-              </Button>
-              <div>
-                <Title level={4} style={{ margin: 0, color: '#1E293B', fontSize: 18 }}>
-                  编辑应用
-                </Title>
-                <Text style={{ color: '#64748B', fontSize: 13 }}>
-                  配置应用的参数和知识库
-                </Text>
-              </div>
-            </Space>
-            <Space>
-              <Button
-                icon={<CodeOutlined />}
-                onClick={() => setEmbedModalVisible(true)}
-                style={{ borderRadius: 8 }}
-              >
-                嵌入代码
-              </Button>
-              <Button
-                icon={isPublic ? <GlobalOutlined /> : <LockOutlined />}
-                onClick={handleShare}
-                style={{ borderRadius: 8 }}
-              >
-                {isPublic ? '复制分享链接' : '设为公开后可分享'}
-              </Button>
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                onClick={handleSave}
-                loading={saving}
-                style={{ borderRadius: 8 }}
-              >
-                保存
-              </Button>
-            </Space>
+    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Space>
+          <Button icon={<IconArrowLeft />} onClick={() => navigate('/apps')}>
+            返回
+          </Button>
+          <div>
+            <Title heading={4} style={{ margin: 0 }}>编辑应用</Title>
+            <Text type="tertiary" size="small">配置应用的参数和知识库</Text>
           </div>
+        </Space>
+        <Space>
+          <Button icon={<IconCode />} onClick={() => setEmbedModalVisible(true)}>
+            嵌入代码
+          </Button>
+          <Button
+            icon={isPublic ? <IconGlobe /> : <IconLock />}
+            onClick={handleShare}
+          >
+            {isPublic ? '复制分享链接' : '设为公开后可分享'}
+          </Button>
+          <Button type="primary" icon={<IconSave />} onClick={handleSave} loading={saving}>
+            保存
+          </Button>
+        </Space>
+      </div>
 
-          <Row gutter={24}>
-            {/* Left Panel - Settings */}
-            <Col span={16}>
-              <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-                {/* Basic Info */}
-                <Card
-                  title={
-                    <Space>
-                      <RobotOutlined />
-                      <Text>基本信息</Text>
-                    </Space>
-                  }
-                  styles={{ body: { padding: '20px' } }}
-                >
-                  <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+      <Row gutter={24}>
+        {/* Left Panel - Tabs */}
+        <Col span={16}>
+          <Tabs type="line" defaultActiveKey="basic">
+            {/* 基本信息 Tab */}
+            <TabPane tab="基本信息" itemKey="basic">
+              <Card style={{ marginTop: 16 }}>
+                <Form labelPosition="top">
+                  <Form.Input
+                    field="name"
+                    label="应用名称"
+                    placeholder="例如：客服助手"
+                    initValue={appName}
+                    onChange={(v) => setAppName(v)}
+                  />
+                  <Form.TextArea
+                    field="description"
+                    label="应用描述"
+                    placeholder="描述这个应用的用途..."
+                    rows={3}
+                    initValue={appDescription}
+                    onChange={(v) => setAppDescription(v)}
+                  />
+                  <Divider style={{ margin: '16px 0' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <Text strong style={{ display: 'block', marginBottom: 8 }}>应用名称</Text>
-                      <Input
-                        value={appName}
-                        onChange={(e) => setAppName(e.target.value)}
-                        placeholder="例如：客服助手"
-                        style={{ borderRadius: 8 }}
-                      />
-                    </div>
-                    <div>
-                      <Text strong style={{ display: 'block', marginBottom: 8 }}>应用描述</Text>
-                      <TextArea
-                        value={appDescription}
-                        onChange={(e) => setAppDescription(e.target.value)}
-                        placeholder="描述这个应用的用途..."
-                        rows={3}
-                        style={{ borderRadius: 8 }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        <Text strong>公开应用</Text>
-                        <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
-                          开启后可以通过链接访问
-                        </div>
+                      <Text strong>公开应用</Text>
+                      <div style={{ marginTop: 4 }}>
+                        <Text type="tertiary" size="small">开启后可以通过链接访问</Text>
                       </div>
-                      <Switch checked={isPublic} onChange={setIsPublic} />
                     </div>
-                  </Space>
-                </Card>
+                    <Switch checked={isPublic} onChange={setIsPublic} />
+                  </div>
+                </Form>
+              </Card>
+            </TabPane>
 
-                {/* Model Settings */}
-                <Card
-                  title={
-                    <Space>
-                      <MessageOutlined />
-                      <Text>模型设置</Text>
-                    </Space>
-                  }
-                  styles={{ body: { padding: '20px' } }}
-                >
-                  <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-                    <div>
-                      <Text strong style={{ display: 'block', marginBottom: 8 }}>选择模型</Text>
-                      <select
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
+            {/* 模型配置 Tab */}
+            <TabPane tab="模型配置" itemKey="model">
+              <Card style={{ marginTop: 16 }}>
+                <Form labelPosition="top">
+                  <Form.Select
+                    field="model"
+                    label="选择模型"
+                    initValue={selectedModel}
+                    onChange={(v) => setSelectedModel(v as string)}
+                    style={{ width: '100%' }}
+                    optionList={availableModels.map(m => ({ value: m, label: m }))}
+                  />
+                  <Form.TextArea
+                    field="system_prompt"
+                    label="系统提示词"
+                    placeholder="设置 AI 助手的角色和行为..."
+                    rows={4}
+                    initValue={systemPrompt}
+                    onChange={(v) => setSystemPrompt(v)}
+                  />
+                  <Form.TextArea
+                    field="welcome_message"
+                    label="欢迎语"
+                    placeholder="用户打开对话时显示的欢迎消息..."
+                    rows={2}
+                    initValue={welcomeMessage}
+                    onChange={(v) => setWelcomeMessage(v)}
+                  />
+
+                  <Divider orientation="left">LLM 参数</Divider>
+                  <Row gutter={16}>
+                    <Col span={8}>
+                      <Form.InputNumber
+                        field="temperature"
+                        label="温度 (Temperature)"
+                        initValue={temperature}
+                        min={0}
+                        max={1}
+                        step={0.1}
+                        onChange={(v) => setTemperature(v ?? 0.1)}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                    <Col span={8}>
+                      <Form.InputNumber
+                        field="max_tokens"
+                        label="最大 Token"
+                        initValue={maxTokens}
+                        min={256}
+                        max={8192}
+                        onChange={(v) => setMaxTokens(v ?? 2048)}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                    <Col span={8}>
+                      <Form.InputNumber
+                        field="top_p"
+                        label="Top P"
+                        initValue={topP}
+                        min={0}
+                        max={1}
+                        step={0.1}
+                        onChange={(v) => setTopP(v ?? 0.9)}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                  </Row>
+
+                  <Divider orientation="left">RAG 检索参数</Divider>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.InputNumber
+                        field="top_k"
+                        label="检索数量 (Top K)"
+                        initValue={topK}
+                        min={1}
+                        max={20}
+                        onChange={(v) => setTopK(v ?? 5)}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Form.InputNumber
+                        field="similarity_threshold"
+                        label="相似度阈值"
+                        initValue={similarityThreshold}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        onChange={(v) => setSimilarityThreshold(v ?? 0.5)}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                  </Row>
+                  <Text type="tertiary" size="small">
+                    系统将自动使用语义搜索、全文搜索、混合搜索等多种方式检索，合并最优结果
+                  </Text>
+
+                  <Divider orientation="left">Embedding 向量参数</Divider>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Input
+                        field="embedding_model"
+                        label="Embedding 模型"
+                        initValue={embeddingModel}
+                        onChange={(v) => setEmbeddingModel(v)}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Form.InputNumber
+                        field="embedding_dimension"
+                        label="向量维度"
+                        initValue={embeddingDimension}
+                        onChange={(v) => setEmbeddingDimension(v ?? 768)}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                  </Row>
+                  <Text type="tertiary" size="small">
+                    常见维度: nomic-embed-text=768, bge-large-zh=1024, m3e-large=1024
+                  </Text>
+                </Form>
+              </Card>
+            </TabPane>
+
+            {/* 知识库 Tab */}
+            <TabPane tab="知识库" itemKey="knowledge">
+              <Card style={{ marginTop: 16 }}>
+                {knowledgeBases.length === 0 ? (
+                  <Empty description="暂无知识库" />
+                ) : (
+                  <Space vertical style={{ width: '100%' }} spacing={12}>
+                    {knowledgeBases.map(kb => (
+                      <div
+                        key={kb.id}
                         style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: 8,
-                          border: '1px solid #E2E8F0',
-                          fontSize: 14,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: 12,
+                          border: '1px solid var(--semi-color-border)',
+                          borderRadius: 'var(--semi-border-radius-small)',
+                          background: selectedKBs.includes(kb.id)
+                            ? 'var(--semi-color-primary-light-default)'
+                            : 'var(--semi-color-bg-1)',
                         }}
                       >
-                        {availableModels.map(model => (
-                          <option key={model} value={model}>{model}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Text strong style={{ display: 'block', marginBottom: 8 }}>系统提示词</Text>
-                      <TextArea
-                        value={systemPrompt}
-                        onChange={(e) => setSystemPrompt(e.target.value)}
-                        placeholder="设置 AI 助手的角色和行为..."
-                        rows={4}
-                        style={{ borderRadius: 8 }}
-                      />
-                    </div>
-                    <div>
-                      <Text strong style={{ display: 'block', marginBottom: 8 }}>欢迎语</Text>
-                      <TextArea
-                        value={welcomeMessage}
-                        onChange={(e) => setWelcomeMessage(e.target.value)}
-                        placeholder="用户打开对话时显示的欢迎消息..."
-                        rows={2}
-                        style={{ borderRadius: 8 }}
-                      />
-                    </div>
-
-                    {/* Advanced Parameters */}
-                    <Divider orientation="left">高级参数</Divider>
-
-                    {/* LLM Parameters */}
-                    <div>
-                      <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
-                        LLM 参数
-                      </Text>
-                      <Row gutter={16}>
-                        <Col span={8}>
-                          <div style={{ marginBottom: 8 }}>
-                            <Text type="secondary" style={{ fontSize: 11 }}>温度 (Temperature)</Text>
-                            <Input
-                              type="number"
-                              step={0.1}
-                              min={0}
-                              max={1}
-                              value={temperature}
-                              onChange={(e) => setTemperature(parseFloat(e.target.value) || 0.1)}
-                              suffix="0-1"
-                            />
+                        <Space>
+                          <IconArchive style={{ color: 'var(--semi-color-primary)' }} />
+                          <div>
+                            <Text strong>{kb.name}</Text>
+                            {kb.description && (
+                              <div><Text type="tertiary" size="small">{kb.description}</Text></div>
+                            )}
                           </div>
-                        </Col>
-                        <Col span={8}>
-                          <div style={{ marginBottom: 8 }}>
-                            <Text type="secondary" style={{ fontSize: 11 }}>最大 Token</Text>
-                            <Input
-                              type="number"
-                              min={256}
-                              max={8192}
-                              value={maxTokens}
-                              onChange={(e) => setMaxTokens(parseInt(e.target.value) || 2048)}
-                            />
-                          </div>
-                        </Col>
-                        <Col span={8}>
-                          <div style={{ marginBottom: 8 }}>
-                            <Text type="secondary" style={{ fontSize: 11 }}>Top P</Text>
-                            <Input
-                              type="number"
-                              step={0.1}
-                              min={0}
-                              max={1}
-                              value={topP}
-                              onChange={(e) => setTopP(parseFloat(e.target.value) || 0.9)}
-                              suffix="0-1"
-                            />
-                          </div>
-                        </Col>
-                      </Row>
-                    </div>
-
-                    {/* RAG Parameters */}
-                    <div>
-                      <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
-                        RAG 检索参数
-                      </Text>
-                      <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                        <Row gutter={16}>
-                          <Col span={12}>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={20}
-                              value={topK}
-                              onChange={(e) => setTopK(parseInt(e.target.value) || 5)}
-                              addonBefore="检索数量 (Top K)"
-                            />
-                          </Col>
-                          <Col span={12}>
-                            <div>
-                              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
-                                相似度阈值
-                              </Text>
-                              <InputNumber
-                                min={0}
-                                max={1}
-                                step={0.05}
-                                value={similarityThreshold}
-                                onChange={(val) => setSimilarityThreshold(val ?? 0.5)}
-                                style={{ width: '100%' }}
-                              />
-                            </div>
-                          </Col>
-                        </Row>
-                        <Text type="secondary" style={{ fontSize: 11 }}>
-                          💡 系统将自动使用语义搜索、全文搜索、混合搜索等多种方式检索，合并最优结果
-                        </Text>
-                      </Space>
-                    </div>
-
-                    {/* Embedding Parameters */}
-                    <div>
-                      <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
-                        Embedding 向量参数
-                      </Text>
-                      <Row gutter={16}>
-                        <Col span={12}>
-                          <Input
-                            value={embeddingModel}
-                            onChange={(e) => setEmbeddingModel(e.target.value)}
-                            addonBefore="Embedding 模型"
-                          />
-                        </Col>
-                        <Col span={12}>
-                          <Input
-                            type="number"
-                            value={embeddingDimension}
-                            onChange={(e) => setEmbeddingDimension(parseInt(e.target.value) || 768)}
-                            addonBefore="向量维度"
-                            suffix="维"
-                          />
-                        </Col>
-                      </Row>
-                      <Text type="secondary" style={{ fontSize: 11 }}>
-                        💡 常见维度: nomic-embed-text=768, bge-large-zh=1024, m3e-large=1024
-                      </Text>
-                    </div>
+                        </Space>
+                        <Switch
+                          checked={selectedKBs.includes(kb.id)}
+                          onChange={(checked) => {
+                            if (checked) {
+                              setSelectedKBs([...selectedKBs, kb.id]);
+                            } else {
+                              setSelectedKBs(selectedKBs.filter(id => id !== kb.id));
+                            }
+                          }}
+                        />
+                      </div>
+                    ))}
                   </Space>
-                </Card>
+                )}
+              </Card>
 
-                {/* Knowledge Base */}
-                <Card
-                  title={
-                    <Space>
-                      <DatabaseOutlined />
-                      <Text>关联知识库</Text>
-                    </Space>
-                  }
-                  styles={{ body: { padding: '20px' } }}
-                >
-                  {knowledgeBases.length === 0 ? (
-                    <Empty description="暂无知识库" />
-                  ) : (
-                    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-                      {knowledgeBases.map(kb => (
-                        <div
-                          key={kb.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '12px',
-                            borderRadius: 8,
-                            border: '1px solid #E2E8F0',
-                            background: selectedKBs.includes(kb.id) ? '#F0F9FF' : '#FAFAFA',
-                          }}
-                        >
-                          <Space>
-                            <DatabaseOutlined style={{ color: '#7C3AED' }} />
-                            <div>
-                              <Text strong style={{ color: '#1E293B' }}>{kb.name}</Text>
-                              {kb.description && (
-                                <div style={{ fontSize: 12, color: '#64748B' }}>{kb.description}</div>
-                              )}
-                            </div>
-                          </Space>
-                          <Switch
-                            checked={selectedKBs.includes(kb.id)}
-                            onChange={(checked) => {
-                              if (checked) {
-                                setSelectedKBs([...selectedKBs, kb.id]);
-                              } else {
-                                setSelectedKBs(selectedKBs.filter(id => id !== kb.id));
-                              }
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </Space>
-                  )}
-                </Card>
-
-                {/* MCP Tools Configuration */}
-                <Card
-                  title={
-                    <Space>
-                      <ApiOutlined />
-                      <Text>MCP 工具</Text>
-                      {selectedMcpIds.length > 0 && <Tag color="purple">{selectedMcpIds.length}</Tag>}
-                    </Space>
-                  }
-                  styles={{ body: { padding: '20px' } }}
-                >
-                  {mcpConfigs.length === 0 ? (
-                    <Empty
-                      description="暂无 MCP 配置"
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      style={{ padding: '20px 0' }}
-                    >
-                      <Button
-                        type="link"
-                        onClick={() => navigate('/settings')}
-                        style={{ padding: 0 }}
-                      >
-                        前往设置 MCP
-                      </Button>
-                    </Empty>
-                  ) : (
-                    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        选择 MCP 服务器，让 AI 助手可以使用外部工具
-                      </Text>
-                      {mcpConfigs.map(mcp => (
-                        <div
-                          key={mcp.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '12px',
-                            borderRadius: 8,
-                            border: '1px solid #E2E8F0',
-                            background: selectedMcpIds.includes(mcp.id) ? '#F5F3FF' : '#FAFAFA',
-                          }}
-                        >
-                          <Space>
-                            <ToolOutlined style={{ color: '#7C3AED' }} />
-                            <div>
-                              <Text strong style={{ color: '#1E293B' }}>{mcp.name}</Text>
-                              <div style={{ fontSize: 12, color: '#64748B', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Tag
-                                  color={mcp.connection_type === 'stdio' ? 'green' : 'blue'}
-                                  style={{ margin: 0, fontSize: 10 }}
-                                >
-                                  {mcp.connection_type.toUpperCase()}
-                                </Tag>
-                                {mcp.url && (
-                                  <Text style={{ fontSize: 11 }} ellipsis={{ tooltip: mcp.url }}>
-                                    {mcp.url}
-                                  </Text>
-                                )}
-                                {mcp.command && (
-                                  <Text style={{ fontSize: 11 }} ellipsis={{ tooltip: `${mcp.command} ${mcp.args?.join(' ') || ''}` }}>
-                                    {mcp.command} {mcp.args?.[0] || ''}
-                                  </Text>
-                                )}
-                                {mcp.tools_count !== undefined && (
-                                  <Text style={{ fontSize: 11 }}>
-                                    {mcp.tools_count} 个工具
-                                  </Text>
-                                )}
-                              </div>
-                            </div>
-                          </Space>
-                          <Switch
-                            checked={selectedMcpIds.includes(mcp.id)}
-                            onChange={(checked) => {
-                              if (checked) {
-                                setSelectedMcpIds([...selectedMcpIds, mcp.id]);
-                              } else {
-                                setSelectedMcpIds(selectedMcpIds.filter(id => id !== mcp.id));
-                              }
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </Space>
-                  )}
-                </Card>
-              </Space>
-            </Col>
-
-            {/* Right Panel - Preview */}
-            <Col span={8}>
+              {/* MCP Tools */}
               <Card
+                style={{ marginTop: 16 }}
                 title={
                   <Space>
-                    <ThunderboltOutlined />
-                    <Text>预览</Text>
+                    <IconLink />
+                    <Text>MCP 工具</Text>
+                    {selectedMcpIds.length > 0 && <Tag color="purple">{selectedMcpIds.length}</Tag>}
                   </Space>
                 }
-                styles={{ body: { padding: '20px' } }}
               >
-                <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-                  <div
-                    style={{
-                      padding: '16px',
-                      borderRadius: 12,
-                      background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <RobotOutlined style={{ fontSize: 32, color: 'white' }} />
-                    <Title level={5} style={{ margin: '8px 0 4px', color: 'white' }}>
-                      {appName || '未命名应用'}
-                    </Title>
-                    <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
-                      {appDescription || '暂无描述'}
+                {mcpConfigs.length === 0 ? (
+                  <Empty description="暂无 MCP 配置">
+                    <Button type="tertiary" onClick={() => navigate('/settings')}>
+                      前往设置 MCP
+                    </Button>
+                  </Empty>
+                ) : (
+                  <Space vertical style={{ width: '100%' }} spacing={12}>
+                    <Text type="tertiary" size="small">
+                      选择 MCP 服务器，让 AI 助手可以使用外部工具
                     </Text>
-                  </div>
-
-                  <div>
-                    <Text strong style={{ display: 'block', marginBottom: 8 }}>当前配置</Text>
-                    <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Text style={{ color: '#64748B' }}>模型</Text>
-                        <Tag color="blue">{selectedModel}</Tag>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Text style={{ color: '#64748B' }}>知识库</Text>
-                        <Text>{selectedKBs.length} 个</Text>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Text style={{ color: '#64748B' }}>MCP 工具</Text>
-                        <Text>{selectedMcpIds.length > 0 ? `${selectedMcpIds.length} 个` : '-'}</Text>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Text style={{ color: '#64748B' }}>访问权限</Text>
-                        <Tag color={isPublic ? 'green' : 'default'}>
-                          {isPublic ? '公开' : '私有'}
-                        </Tag>
-                      </div>
-                    </Space>
-                  </div>
-
-                  {app?.share_id && (
-                    <>
-                      <Divider style={{ margin: '12px 0' }} />
-                      <div>
-                        <Text strong style={{ display: 'block', marginBottom: 8 }}>分享链接</Text>
-                        <Text
-                          copyable
-                          style={{
-                            fontSize: 12,
-                            color: '#2563EB',
-                            wordBreak: 'break-all',
+                    {mcpConfigs.map(mcp => (
+                      <div
+                        key={mcp.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: 12,
+                          border: '1px solid var(--semi-color-border)',
+                          borderRadius: 'var(--semi-border-radius-small)',
+                          background: selectedMcpIds.includes(mcp.id)
+                            ? 'var(--semi-color-primary-light-default)'
+                            : 'var(--semi-color-bg-1)',
+                        }}
+                      >
+                        <Space>
+                          <IconHelm style={{ color: 'var(--semi-color-primary)' }} />
+                          <div>
+                            <Text strong>{mcp.name}</Text>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <Tag
+                                color={mcp.connection_type === 'stdio' ? 'green' : 'blue'}
+                                size="small"
+                              >
+                                {mcp.connection_type.toUpperCase()}
+                              </Tag>
+                              {mcp.url && (
+                                <Text
+                                  type="tertiary"
+                                  size="small"
+                                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}
+                                  title={mcp.url}
+                                >
+                                  {mcp.url}
+                                </Text>
+                              )}
+                              {mcp.command && (
+                                <Text
+                                  type="tertiary"
+                                  size="small"
+                                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}
+                                  title={`${mcp.command} ${mcp.args?.join(' ') || ''}`}
+                                >
+                                  {mcp.command} {mcp.args?.[0] || ''}
+                                </Text>
+                              )}
+                              {mcp.tools_count !== undefined && (
+                                <Text type="tertiary" size="small">{mcp.tools_count} 个工具</Text>
+                              )}
+                            </div>
+                          </div>
+                        </Space>
+                        <Switch
+                          checked={selectedMcpIds.includes(mcp.id)}
+                          onChange={(checked) => {
+                            if (checked) {
+                              setSelectedMcpIds([...selectedMcpIds, mcp.id]);
+                            } else {
+                              setSelectedMcpIds(selectedMcpIds.filter(id => id !== mcp.id));
+                            }
                           }}
-                        >
-                          {origin ? `${origin}/share/${app.share_id}` : '加载中...'}
-                        </Text>
+                        />
                       </div>
-                    </>
-                  )}
-                </Space>
+                    ))}
+                  </Space>
+                )}
               </Card>
-            </Col>
-          </Row>
-        </Space>
+            </TabPane>
 
-        {/* Embed Code Modal */}
-        <Modal
-          title="嵌入第三方"
-          open={embedModalVisible}
-          onCancel={() => setEmbedModalVisible(false)}
-          footer={null}
-          width={960}
-          styles={{ body: { padding: '20px' } }}
-          closeIcon={<CloseOutlined style={{ fontSize: 16, color: '#6B7280' }} />}
-        >
-          <Row gutter={16}>
-            {/* 全屏模式 */}
-            <Col span={8}>
-              <div
-                style={{
-                  background: '#F8F9FA',
-                  border: '1px solid #E0E0E0',
-                  borderRadius: 8,
-                  padding: 16,
-                  height: '100%',
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A', marginBottom: 12 }}>
-                  全屏模式
-                </div>
-
-                <div
-                  style={{
-                    background: '#F0F2F5',
-                    borderRadius: 6,
-                    padding: 12,
-                    marginBottom: 12,
-                    height: 100,
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#6366F1' }} />
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#8B5CF6' }} />
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#A78BFA' }} />
-                  </div>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ height: 8, background: '#E0E0E0', borderRadius: 2, width: '60%' }} />
-                    <div style={{ height: 8, background: '#E0E0E0', borderRadius: 2, width: '40%' }} />
-                    <div style={{ flex: 1, background: '#E8E8E8', borderRadius: 4, marginTop: 4 }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: '#1A1A1A' }}>复制以下代码进行嵌入</span>
-                    <Button
-                      size="small"
-                      icon={<CopyOutlined />}
-                      onClick={() => {
-                        const shareId = app?.share_id || 'APP_ID';
-                        const code = `<div id="ai-chat-${shareId}"></div>
-<script src="${origin}/embed/${shareId}.js" data-mode="fullscreen" async></script>`;
-                        copyToClipboard(code, '代码已复制到剪贴板');
-                      }}
-                      style={{ fontSize: 12, height: 24, padding: '0 8px' }}
-                    >
-                      复制
-                    </Button>
-                  </div>
-                  <div
+            {/* 嵌入代码 Tab */}
+            <TabPane tab="嵌入代码" itemKey="embed">
+              <Space vertical style={{ width: '100%', marginTop: 16 }} spacing={16}>
+                <Card title="全屏模式">
+                  <Paragraph
+                    copyable
                     style={{
-                      background: '#F8F9FA',
-                      border: '1px solid #E0E0E0',
-                      borderRadius: 6,
-                      padding: 12,
-                      fontSize: 11,
                       fontFamily: 'Consolas, Monaco, monospace',
-                      color: '#1A1A1A',
-                      maxHeight: 80,
-                      overflow: 'auto',
-                      lineHeight: '18px',
+                      fontSize: 13,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-all',
+                      padding: 16,
+                      background: 'var(--semi-color-fill-0)',
+                      borderRadius: 'var(--semi-border-radius-medium)',
                     }}
                   >
-                    {origin ? `<div id="ai-chat-${app?.share_id || 'APP_ID'}"></div>
-<script src="${origin}/embed/${app?.share_id || 'APP_ID'}.js" data-mode="fullscreen" async></script>` : ''}
-                  </div>
-                </div>
-              </div>
-            </Col>
-
-            {/* 移动端模式 */}
-            <Col span={8}>
-              <div
-                style={{
-                  background: '#F8F9FA',
-                  border: '1px solid #E0E0E0',
-                  borderRadius: 8,
-                  padding: 16,
-                  height: '100%',
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A', marginBottom: 12 }}>
-                  移动端模式
-                </div>
-
-                <div
-                  style={{
-                    background: '#F0F2F5',
-                    borderRadius: 6,
-                    padding: 12,
-                    marginBottom: 12,
-                    height: 100,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <div
+                    {getFullscreenEmbedCode()}
+                  </Paragraph>
+                </Card>
+                <Card title="浮窗模式">
+                  <Paragraph
+                    copyable
                     style={{
-                      width: 50,
-                      height: 80,
-                      background: '#FFFFFF',
-                      borderRadius: 8,
-                      border: '2px solid #6366F1',
-                      padding: 6,
-                      display: 'flex',
-                      flexDirection: 'column',
+                      fontFamily: 'Consolas, Monaco, monospace',
+                      fontSize: 13,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-all',
+                      padding: 16,
+                      background: 'var(--semi-color-fill-0)',
+                      borderRadius: 'var(--semi-border-radius-medium)',
                     }}
                   >
-                    <div
+                    {getFloatingEmbedCode()}
+                  </Paragraph>
+                </Card>
+                <Card title="内嵌模式">
+                  <Paragraph
+                    copyable
+                    style={{
+                      fontFamily: 'Consolas, Monaco, monospace',
+                      fontSize: 13,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-all',
+                      padding: 16,
+                      background: 'var(--semi-color-fill-0)',
+                      borderRadius: 'var(--semi-border-radius-medium)',
+                    }}
+                  >
+                    {getInlineEmbedCode()}
+                  </Paragraph>
+                </Card>
+                {app?.share_id && (
+                  <Card title="直接链接">
+                    <Paragraph
+                      copyable
                       style={{
-                        height: 6,
-                        background: '#6366F1',
-                        borderRadius: 2,
-                        marginBottom: 4,
+                        padding: 16,
+                        background: 'var(--semi-color-fill-0)',
+                        borderRadius: 'var(--semi-border-radius-medium)',
+                        wordBreak: 'break-all',
                       }}
-                    />
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <div style={{ height: 6, background: '#E0E0E0', borderRadius: 2, alignSelf: 'flex-start', width: '70%' }} />
-                      <div style={{ height: 6, background: '#6366F1', borderRadius: 2, alignSelf: 'flex-end', width: '60%' }} />
-                      <div style={{ height: 6, background: '#E0E0E0', borderRadius: 2, alignSelf: 'flex-start', width: '50%' }} />
-                    </div>
-                    <div style={{ height: 8, background: '#E8E8E8', borderRadius: 2, marginTop: 4 }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: '#1A1A1A' }}>复制以下代码进行嵌入</span>
-                    <Button
-                      size="small"
-                      icon={<CopyOutlined />}
-                      onClick={() => {
-                        const shareId = app?.share_id || 'APP_ID';
-                        const code = `<div id="ai-chat-${shareId}"></div>
-<script src="${origin}/embed/${shareId}.js" data-mode="mobile" async></script>`;
-                        copyToClipboard(code, '代码已复制到剪贴板');
-                      }}
-                      style={{ fontSize: 12, height: 24, padding: '0 8px' }}
                     >
-                      复制
-                    </Button>
-                  </div>
-                  <div
-                    style={{
-                      background: '#F8F9FA',
-                      border: '1px solid #E0E0E0',
-                      borderRadius: 6,
-                      padding: 12,
-                      fontSize: 11,
-                      fontFamily: 'Consolas, Monaco, monospace',
-                      color: '#1A1A1A',
-                      maxHeight: 80,
-                      overflow: 'auto',
-                      lineHeight: '18px',
-                    }}
-                  >
-                    {origin ? `<div id="ai-chat-${app?.share_id || 'APP_ID'}"></div>
-<script src="${origin}/embed/${app?.share_id || 'APP_ID'}.js" data-mode="mobile" async></script>` : ''}
-                  </div>
-                </div>
-              </div>
-            </Col>
+                      {origin}/share/{app.share_id}
+                    </Paragraph>
+                  </Card>
+                )}
+              </Space>
+            </TabPane>
+          </Tabs>
+        </Col>
 
-            {/* 浮窗模式 */}
-            <Col span={8}>
+        {/* Right Panel - Preview */}
+        <Col span={8}>
+          <Card
+            title={
+              <Space>
+                <IconBolt />
+                <Text>预览</Text>
+              </Space>
+            }
+          >
+            <Space vertical style={{ width: '100%' }} spacing={16}>
               <div
                 style={{
-                  background: '#F8F9FA',
-                  border: '1px solid #E0E0E0',
-                  borderRadius: 8,
                   padding: 16,
-                  height: '100%',
+                  borderRadius: 'var(--semi-border-radius-medium)',
+                  background: 'var(--semi-color-primary)',
+                  textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A', marginBottom: 12 }}>
-                  浮窗模式
-                </div>
-
-                <div
-                  style={{
-                    background: '#F0F2F5',
-                    borderRadius: 6,
-                    padding: 12,
-                    marginBottom: 12,
-                    height: 100,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'flex-end',
-                    position: 'relative',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 60,
-                      height: 70,
-                      background: '#FFFFFF',
-                      borderRadius: 8,
-                      border: '1px solid #E0E0E0',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                      padding: 8,
-                      display: 'flex',
-                      flexDirection: 'column',
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: 6,
-                        background: '#6366F1',
-                        borderRadius: 2,
-                        marginBottom: 6,
-                      }}
-                    />
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div style={{ height: 6, background: '#E0E0E0', borderRadius: 2, width: '70%' }} />
-                      <div style={{ height: 6, background: '#6366F1', borderRadius: 2, width: '50%', alignSelf: 'flex-end' }} />
-                      <div style={{ height: 6, background: '#E0E0E0', borderRadius: 2, width: '60%' }} />
-                    </div>
-                    <div style={{ height: 8, background: '#E8E8E8', borderRadius: 2, marginTop: 'auto' }} />
-                  </div>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      right: 8,
-                      bottom: 8,
-                      width: 20,
-                      height: 20,
-                      background: '#6366F1',
-                      borderRadius: '50%',
-                      border: '2px solid #FFFFFF',
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: '#1A1A1A' }}>复制以下代码进行嵌入</span>
-                    <Button
-                      size="small"
-                      icon={<CopyOutlined />}
-                      onClick={() => {
-                        const shareId = app?.share_id || 'APP_ID';
-                        const code = `<script src="${origin}/embed/${shareId}.js" async></script>`;
-                        copyToClipboard(code, '代码已复制到剪贴板');
-                      }}
-                      style={{ fontSize: 12, height: 24, padding: '0 8px' }}
-                    >
-                      复制
-                    </Button>
-                  </div>
-                  <div
-                    style={{
-                      background: '#F8F9FA',
-                      border: '1px solid #E0E0E0',
-                      borderRadius: 6,
-                      padding: 12,
-                      fontSize: 11,
-                      fontFamily: 'Consolas, Monaco, monospace',
-                      color: '#1A1A1A',
-                      maxHeight: 80,
-                      overflow: 'auto',
-                      lineHeight: '18px',
-                    }}
-                  >
-                    {origin ? `<script src="${origin}/embed/${app?.share_id || 'APP_ID'}.js" async></script>` : ''}
-                  </div>
-                </div>
+                <IconServerStroked style={{ fontSize: 32, color: 'var(--semi-color-bg-0)' }} />
+                <Title heading={5} style={{ margin: '8px 0 4px', color: 'var(--semi-color-bg-0)' }}>
+                  {appName || '未命名应用'}
+                </Title>
+                <Text size="small" style={{ color: 'var(--semi-color-bg-0)', opacity: 0.8 }}>
+                  {appDescription || '暂无描述'}
+                </Text>
               </div>
-            </Col>
-          </Row>
-        </Modal>
-      </div>
-    </>
+
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: 8 }}>当前配置</Text>
+                <Space vertical style={{ width: '100%' }} spacing={8}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Text type="tertiary">模型</Text>
+                    <Tag color="blue">{selectedModel}</Tag>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Text type="tertiary">知识库</Text>
+                    <Text>{selectedKBs.length} 个</Text>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Text type="tertiary">MCP 工具</Text>
+                    <Text>{selectedMcpIds.length > 0 ? `${selectedMcpIds.length} 个` : '-'}</Text>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Text type="tertiary">访问权限</Text>
+                    <Tag color={isPublic ? 'green' : 'default'}>
+                      {isPublic ? '公开' : '私有'}
+                    </Tag>
+                  </div>
+                </Space>
+              </div>
+
+              {app?.share_id && (
+                <>
+                  <Divider style={{ margin: '4px 0' }} />
+                  <div>
+                    <Text strong style={{ display: 'block', marginBottom: 8 }}>分享链接</Text>
+                    <Paragraph
+                      copyable={{ content: origin ? `${origin}/share/${app.share_id}` : '' }}
+                      size="small"
+                      style={{ wordBreak: 'break-all' }}
+                    >
+                      {origin ? `${origin}/share/${app.share_id}` : '加载中...'}
+                    </Paragraph>
+                  </div>
+                </>
+              )}
+            </Space>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Embed Code Modal */}
+      <Modal
+        title="嵌入第三方"
+        visible={embedModalVisible}
+        onCancel={() => setEmbedModalVisible(false)}
+        footer={null}
+        width={700}
+      >
+        <Tabs type="line">
+          <TabPane tab="全屏模式" itemKey="fullscreen">
+            <div style={{ marginTop: 12 }}>
+              <Paragraph
+                copyable
+                style={{
+                  fontFamily: 'Consolas, Monaco, monospace',
+                  fontSize: 13,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                  padding: 16,
+                  background: 'var(--semi-color-fill-0)',
+                  borderRadius: 'var(--semi-border-radius-medium)',
+                }}
+              >
+                {getFullscreenEmbedCode()}
+              </Paragraph>
+            </div>
+          </TabPane>
+          <TabPane tab="浮窗模式" itemKey="floating">
+            <div style={{ marginTop: 12 }}>
+              <Paragraph
+                copyable
+                style={{
+                  fontFamily: 'Consolas, Monaco, monospace',
+                  fontSize: 13,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                  padding: 16,
+                  background: 'var(--semi-color-fill-0)',
+                  borderRadius: 'var(--semi-border-radius-medium)',
+                }}
+              >
+                {getFloatingEmbedCode()}
+              </Paragraph>
+            </div>
+          </TabPane>
+          <TabPane tab="内嵌模式" itemKey="inline">
+            <div style={{ marginTop: 12 }}>
+              <Paragraph
+                copyable
+                style={{
+                  fontFamily: 'Consolas, Monaco, monospace',
+                  fontSize: 13,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                  padding: 16,
+                  background: 'var(--semi-color-fill-0)',
+                  borderRadius: 'var(--semi-border-radius-medium)',
+                }}
+              >
+                {getInlineEmbedCode()}
+              </Paragraph>
+            </div>
+          </TabPane>
+        </Tabs>
+      </Modal>
+    </div>
   );
 }
 

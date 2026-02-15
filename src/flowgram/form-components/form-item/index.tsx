@@ -22,6 +22,7 @@ interface FormItemProps {
   labelStyle?: React.CSSProperties;
   vertical?: boolean;
   style?: React.CSSProperties;
+  title?: string;
 }
 export function FormItem({
   children,
@@ -33,17 +34,18 @@ export function FormItem({
   labelStyle,
   vertical,
   style,
+  title,
 }: FormItemProps): JSX.Element {
   const renderTitle = useCallback(
     (showTooltip?: boolean) => (
       <div style={{ width: '0', display: 'flex', flex: '1' }}>
         <Text style={{ width: '100%' }} ellipsis={{ showTooltip: !!showTooltip }}>
-          {name}
+          {title || name}
           {required && <span style={{ color: '#f93920', paddingLeft: '2px' }}>*</span>}
         </Text>
       </div>
     ),
-    []
+    [title]
   );
   return (
     <div

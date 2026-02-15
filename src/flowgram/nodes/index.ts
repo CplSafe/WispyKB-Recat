@@ -18,6 +18,9 @@ import { CodeNodeRegistry } from './code';
 import { BreakNodeRegistry } from './break';
 import { BlockStartNodeRegistry } from './block-start';
 import { BlockEndNodeRegistry } from './block-end';
+import { KnowledgeBaseNodeRegistry } from './knowledge-base';
+import { MCPServiceNodeRegistry } from './mcp-service';
+import { WorkflowAppNodeRegistry } from './workflow-app';
 export { WorkflowNodeType } from './constants';
 
 export const nodeRegistries: FlowNodeRegistry[] = [
@@ -35,4 +38,7 @@ export const nodeRegistries: FlowNodeRegistry[] = [
   BreakNodeRegistry,
   VariableNodeRegistry,
   GroupNodeRegistry,
+  KnowledgeBaseNodeRegistry,
+  MCPServiceNodeRegistry,
+  WorkflowAppNodeRegistry,
 ];

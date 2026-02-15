@@ -23,10 +23,12 @@ interface AppState {
   token: string | null;
   systemConfig: SystemConfig | null;
   sidebarCollapsed: boolean;
+  locale: 'zh_CN' | 'en_US';
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   setSystemConfig: (config: SystemConfig) => void;
   toggleSidebar: () => void;
+  setLocale: (locale: 'zh_CN' | 'en_US') => void;
   clear: () => void;
 }
 
@@ -37,6 +39,7 @@ export const useAppStore = create<AppState>()(
       token: null,
       systemConfig: null,
       sidebarCollapsed: false,
+      locale: 'zh_CN',
       setUser: (user) => set({ user }),
       setToken: (token) => {
         set({ token });
@@ -54,6 +57,7 @@ export const useAppStore = create<AppState>()(
       },
       setSystemConfig: (config) => set({ systemConfig: config }),
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setLocale: (locale) => set({ locale }),
       clear: () => {
         set({ user: null, token: null });
         if (typeof window !== 'undefined') {
@@ -71,6 +75,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         token: state.token,
         sidebarCollapsed: state.sidebarCollapsed,
+        locale: state.locale,
       }),
     }
   )

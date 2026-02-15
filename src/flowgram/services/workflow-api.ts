@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+import api from '../../lib/api';
 import { FlowDocumentJSON } from '../typings';
 
 /**
@@ -13,6 +14,8 @@ export interface SaveWorkflowResponse {
   data?: {
     id: string;
     name: string;
+    icon?: string;
+    description?: string;
     updatedAt: string;
   };
   error?: string;
@@ -23,8 +26,24 @@ export interface SaveWorkflowResponse {
  */
 export interface LoadWorkflowResponse {
   success: boolean;
-  data?: FlowDocumentJSON;
+  data?: FlowDocumentJSON & {
+    id?: string;
+    name?: string;
+    icon?: string;
+    description?: string;
+  };
   error?: string;
+}
+
+/**
+ * 工作流版本
+ */
+export interface WorkflowVersion {
+  id: string;
+  version: string;
+  createdAt: string;
+  description?: string;
+  isPublished: boolean;
 }
 
 /**
@@ -36,13 +55,8 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
  * 工作流 API 服务
  */
 export class WorkflowApiService {
-  private baseURL: string;
   private saveStatus: SaveStatus = 'idle';
   private lastError: string | null = null;
-
-  constructor(baseURL: string = '/api') {
-    this.baseURL = baseURL;
-  }
 
   /**
    * 获取当前保存状态
@@ -78,52 +92,39 @@ export class WorkflowApiService {
     metadata?: {
       name?: string;
       description?: string;
+      icon?: string;
       tags?: string[];
     }
   ): Promise<SaveWorkflowResponse> {
     this.setSaveStatus('saving');
 
     try {
-      const url = workflowId
-        ? `${this.baseURL}/workflows/${workflowId}`
-        : `${this.baseURL}/workflows`;
+      const payload = {
+        ...metadata,
+        definition: data,
+      };
 
-      const response = await fetch(url, {
-        method: workflowId ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...metadata,
-          definition: data,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        this.setSaveStatus('saved');
-        // 1.5秒后重置为 idle
-        setTimeout(() => {
-          if (this.saveStatus === 'saved') {
-            this.setSaveStatus('idle');
-          }
-        }, 1500);
-
-        return {
-          success: true,
-          data: result.data,
-        };
+      let result: any;
+      if (workflowId) {
+        result = await api.put(`/workflows/${workflowId}`, payload);
       } else {
-        const errorMsg = result.error || result.message || '保存失败';
-        this.setSaveStatus('error', errorMsg);
-        return {
-          success: false,
-          error: errorMsg,
-        };
+        result = await api.post('/workflows', payload);
       }
+
+      this.setSaveStatus('saved');
+      // 1.5秒后重置为 idle
+      setTimeout(() => {
+        if (this.saveStatus === 'saved') {
+          this.setSaveStatus('idle');
+        }
+      }, 1500);
+
+      return {
+        success: true,
+        data: result.data || result,
+      };
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : '网络错误，保存失败';
+      const errorMsg = error instanceof Error ? error.message : String(error);
       this.setSaveStatus('error', errorMsg);
       return {
         success: false,
@@ -138,24 +139,99 @@ export class WorkflowApiService {
    */
   async loadWorkflow(workflowId: string): Promise<LoadWorkflowResponse> {
     try {
-      const response = await fetch(`${this.baseURL}/workflows/${workflowId}`);
-      const result = await response.json();
+      const result = await api.get(`/workflows/${workflowId}`);
 
-      if (response.ok && result.success) {
-        return {
-          success: true,
-          data: result.data.definition,
-        };
-      } else {
-        return {
-          success: false,
-          error: result.error || result.message || '加载失败',
-        };
-      }
+      return {
+        success: true,
+        data: {
+          ...result.data?.definition,
+          id: result.data?.id,
+          name: result.data?.name,
+          icon: result.data?.icon,
+          description: result.data?.description,
+        },
+      };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '网络错误，加载失败',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * 发布工作流
+   * @param workflowId 工作流 ID
+   * @param description 发布描述
+   */
+  async publishWorkflow(
+    workflowId: string,
+    description?: string
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const result = await api.post(`/workflows/${workflowId}/publish`, { description });
+      return {
+        success: true,
+        data: result.data || result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * 获取工作流版本历史
+   * @param workflowId 工作流 ID
+   */
+  async getWorkflowVersions(workflowId: string): Promise<{ success: boolean; data?: WorkflowVersion[]; error?: string }> {
+    try {
+      const result = await api.get(`/workflows/${workflowId}/versions`);
+      return {
+        success: true,
+        data: result.data || result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * 上传工作流图标
+   * @param workflowId 工作流 ID
+   * @param file 图标文件
+   */
+  async uploadIcon(workflowId: string, file: File): Promise<{ success: boolean; data?: { icon: string }; error?: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const result = await api.post(`/workflows/${workflowId}/icon`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // 将相对 URL 转换为完整 URL
+      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8888';
+      let iconUrl = result.data?.icon || result.icon;
+      if (iconUrl && !iconUrl.startsWith('http')) {
+        iconUrl = `${API_URL}${iconUrl}`;
+      }
+
+      return {
+        success: true,
+        data: { icon: iconUrl },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -180,24 +256,18 @@ export class WorkflowApiService {
         queryParams.append('pageSize', params.pageSize.toString());
       }
 
-      const response = await fetch(`${this.baseURL}/workflows?${queryParams}`);
-      const result = await response.json();
+      const queryString = queryParams.toString();
+      const url = queryString ? `/workflows?${queryString}` : '/workflows';
+      const result = await api.get(url);
 
-      if (response.ok) {
-        return {
-          success: true,
-          data: result.data || result,
-        };
-      } else {
-        return {
-          success: false,
-          error: result.error || result.message || '获取列表失败',
-        };
-      }
+      return {
+        success: true,
+        data: result.data || result,
+      };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '网络错误',
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -207,24 +277,17 @@ export class WorkflowApiService {
    */
   async getKnowledgeBases(): Promise<{ success: boolean; data?: any[]; error?: string }> {
     try {
-      const response = await fetch(`${this.baseURL}/knowledge-bases`);
-      const result = await response.json();
-
-      if (response.ok) {
-        return {
-          success: true,
-          data: result.data || result,
-        };
-      } else {
-        return {
-          success: false,
-          error: result.error || result.message || '获取知识库列表失败',
-        };
-      }
+      const result = await api.get('/knowledge-bases');
+      // 后端返回格式: {"knowledge_bases": [...]}
+      const data = result.knowledge_bases || result.data || result;
+      return {
+        success: true,
+        data: Array.isArray(data) ? data : [],
+      };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '网络错误',
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -234,24 +297,35 @@ export class WorkflowApiService {
    */
   async getMcpServices(): Promise<{ success: boolean; data?: any[]; error?: string }> {
     try {
-      const response = await fetch(`${this.baseURL}/mcp-services`);
-      const result = await response.json();
-
-      if (response.ok) {
-        return {
-          success: true,
-          data: result.data || result,
-        };
-      } else {
-        return {
-          success: false,
-          error: result.error || result.message || '获取 MCP 服务列表失败',
-        };
-      }
+      const result = await api.get('/mcp-services');
+      return {
+        success: true,
+        data: result.data || result,
+      };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '网络错误',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * 获取工作流应用列表（标签为"工作流应用"的工作流）
+   */
+  async getWorkflowApps(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+      const result = await api.get('/workflows?tag=工作流应用');
+      // 后端返回格式: {"workflows": [...]} 或直接是数组
+      const data = result.workflows || result.data || result;
+      return {
+        success: true,
+        data: Array.isArray(data) ? data : [],
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }

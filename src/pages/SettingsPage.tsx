@@ -8,27 +8,32 @@ import {
   Row,
   Col,
   Space,
-  message,
-  Alert,
+  Toast,
+  Banner,
   Tabs,
-} from 'antd';
+  Modal,
+  Cropper,
+} from '@douyinfe/semi-ui';
 import {
-  UserOutlined,
-  UploadOutlined,
-  ApiOutlined,
-  KeyOutlined,
-  LockOutlined,
-} from '@ant-design/icons';
+  IconUser,
+  IconUpload,
+  IconCodeStroked,
+  IconKey,
+  IconLock,
+} from '@douyinfe/semi-icons';
 import { useAppStore } from '../store';
 import api from '../lib/api';
 
 const { Title, Text } = Typography;
+const { TabPane } = Tabs;
 
 function ProfileTab({ user, setUser }: { user: any; setUser: (user: any) => void }) {
-  const [messageApi, contextHolder] = message.useMessage();
-  const [profileForm] = Form.useForm();
+  const profileFormApi = useRef<any>(null);
   const [loading, setLoading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const cropperRef = useRef<any>(null);
+  const [cropperVisible, setCropperVisible] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string>('');
 
   const handleProfileUpdate = async (values: any) => {
     setLoading(true);
@@ -42,86 +47,94 @@ function ProfileTab({ user, setUser }: { user: any; setUser: (user: any) => void
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setUser(data);
-      messageApi.success('个人资料更新成功');
+      Toast.success('个人资料更新成功');
     } catch (error) {
-      messageApi.error(typeof error === 'string' ? error : '更新失败');
+      Toast.error(typeof error === 'string' ? error : '更新失败');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAvatarUpload = async (file: File) => {
-    try {
-      const loadingMsg = messageApi.loading('正在上传头像...', 0);
+  const handleAvatarUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setCropperSrc(e.target?.result as string);
+      setCropperVisible(true);
+    };
+    reader.readAsDataURL(file);
+  };
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8888';
-      const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+  const handleCrop = async () => {
+    const cropper = cropperRef.current?.cropper;
+    if (!cropper) return;
 
-      const formData = new FormData();
-      formData.append('file', file);
+    cropper.getCroppedCanvas().toBlob(async (blob: Blob | null) => {
+      if (!blob) return;
+      try {
+        const loadingMsg = Toast.info({ content: '正在上传头像...', duration: 0 });
 
-      const response = await fetch(`${API_URL}/api/v1/user/avatar`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
+        const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8888';
+        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+        const formData = new FormData();
+        formData.append('file', new File([blob], 'cropped-avatar.png', { type: 'image/png' }));
+
+        const response = await fetch(`${API_URL}/api/v1/user/avatar`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+
+        Toast.close(loadingMsg);
+        profileFormApi.current?.setValue('avatar', data.url);
+        if (user) {
+          setUser({ ...user, avatar: data.url });
+        }
+        Toast.success('头像上传成功');
+      } catch {
+        Toast.error('头像上传失败');
+      } finally {
+        setCropperVisible(false);
       }
-
-      const data = await response.json();
-
-      messageApi.destroy(loadingMsg as any);
-      profileForm.setFieldValue('avatar', data.url);
-      if (user) {
-        setUser({ ...user, avatar: data.url });
-      }
-      messageApi.success('头像上传成功');
-      return false;
-    } catch (error) {
-      messageApi.destroy();
-      messageApi.error('头像上传失败');
-      return false;
-    }
+    });
   };
 
   const userInitials = user?.username?.charAt(0)?.toUpperCase() || 'U';
 
   return (
     <>
-      {contextHolder}
       <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0, color: '#1E293B', fontSize: 20, fontWeight: 600 }}>
+        <Title heading={3} style={{ margin: 0 }}>
           个人资料
         </Title>
       </div>
 
       <Card
         title="基本信息"
-        style={{
-          background: '#FFFFFF',
-          borderRadius: 12,
-          borderColor: '#E2E8F0',
-        }}
         styles={{ body: { padding: '24px' } }}
       >
         <Form
-          form={profileForm}
+          getFormApi={(api) => { profileFormApi.current = api; }}
           layout="vertical"
-          initialValues={{
+          initValues={{
             username: user?.username,
             email: user?.email,
             avatar: user?.avatar,
           }}
-          onFinish={handleProfileUpdate}
+          onSubmit={handleProfileUpdate}
         >
           <Row gutter={24}>
             <Col span={12}>
-              <Form.Item label="头像">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <Form.Slot label="头像">
+                <Space align="center" spacing={16}>
                   {user?.avatar ? (
                     <img
                       src={user.avatar.startsWith('http') ? user.avatar : `${window.location.origin}${user.avatar}`}
@@ -129,24 +142,20 @@ function ProfileTab({ user, setUser }: { user: any; setUser: (user: any) => void
                       style={{
                         width: 64,
                         height: 64,
-                        borderRadius: 8,
                         objectFit: 'cover',
-                        border: '1px solid #E2E8F0',
+                        border: '1px solid var(--semi-color-border)',
                       }}
                     />
                   ) : (
                     <div style={{
                       width: 64,
                       height: 64,
-                      borderRadius: 8,
-                      background: '#F1F5F9',
+                      background: 'var(--semi-color-bg-2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 24,
-                      color: '#94A3B8',
                     }}>
-                      {userInitials}
+                      <Text type="quaternary" size="large">{userInitials}</Text>
                     </div>
                   )}
                   <div>
@@ -163,100 +172,100 @@ function ProfileTab({ user, setUser }: { user: any; setUser: (user: any) => void
                       }}
                     />
                     <Button
-                      icon={<UploadOutlined />}
+                      icon={<IconUpload />}
                       onClick={() => avatarInputRef.current?.click()}
-                      style={{ borderRadius: 6 }}
                     >
                       更换头像
                     </Button>
                   </div>
-                </div>
-                <Form.Item name="avatar" hidden>
-                  <Input />
-                </Form.Item>
-              </Form.Item>
+                </Space>
+              </Form.Slot>
             </Col>
             <Col span={12}>
-              <Form.Item label="角色">
-                <Input value={user?.role} disabled style={{ borderRadius: 8 }} />
-              </Form.Item>
+              <Form.Slot label="角色">
+                <Input value={user?.role} disabled />
+              </Form.Slot>
             </Col>
             <Col span={24}>
-              <Form.Item
+              <Form.Input
+                field="username"
                 label="用户名"
-                name="username"
                 rules={[{ required: true, message: '请输入用户名' }]}
-              >
-                <Input style={{ borderRadius: 8 }} />
-              </Form.Item>
+              />
             </Col>
             <Col span={24}>
-              <Form.Item
+              <Form.Input
+                field="email"
                 label="邮箱"
-                name="email"
                 rules={[{ type: 'email', message: '请输入有效的邮箱地址' }]}
-              >
-                <Input style={{ borderRadius: 8 }} />
-              </Form.Item>
+              />
             </Col>
           </Row>
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              style={{ borderRadius: 8 }}
-            >
-              保存更改
-            </Button>
-          </Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+          >
+            保存更改
+          </Button>
         </Form>
       </Card>
+
+      <Modal
+        title="裁剪头像"
+        visible={cropperVisible}
+        onOk={handleCrop}
+        onCancel={() => setCropperVisible(false)}
+        width={520}
+        okText="确认裁剪"
+        cancelText="取消"
+      >
+        {cropperSrc && (
+          <Cropper
+            ref={cropperRef}
+            src={cropperSrc}
+            aspectRatio={1}
+            style={{ height: 400 }}
+          />
+        )}
+      </Modal>
     </>
   );
 }
 
 function APITab() {
-  const [messageApi, contextHolder] = message.useMessage();
 
   const handleRegenerateKey = () => {
-    messageApi.warning('此功能尚未实现');
+    Toast.warning('此功能尚未实现');
   };
 
   return (
     <>
-      {contextHolder}
       <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0, color: '#1E293B', fontSize: 20, fontWeight: 600 }}>
+        <Title heading={3} style={{ margin: 0 }}>
           API 设置
         </Title>
       </div>
 
-      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card
           title="API 密钥"
-          style={{
-            background: '#FFFFFF',
-            borderRadius: 12,
-            borderColor: '#E2E8F0',
-          }}
           styles={{ body: { padding: '24px' } }}
         >
-          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-            <Text style={{ color: '#64748B', fontSize: 13 }}>
+          <Space vertical spacing={12} style={{ width: '100%' }}>
+            <Text type="tertiary">
               用于调用 AI 知识库 API 的密钥。请妥善保管，不要与他人分享。
             </Text>
-            <Input.Password
+            <Input
+              mode="password"
               value="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               disabled
-              style={{ borderRadius: 8 }}
             />
             <Button
               type="primary"
-              ghost
-              icon={<KeyOutlined />}
+              theme="light"
+              icon={<IconKey />}
               onClick={handleRegenerateKey}
-              style={{ borderRadius: 8 }}
             >
               重新生成密钥
             </Button>
@@ -265,61 +274,44 @@ function APITab() {
 
         <Card
           title="API 端点"
-          style={{
-            background: '#FFFFFF',
-            borderRadius: 12,
-            borderColor: '#E2E8F0',
-          }}
           styles={{ body: { padding: '24px' } }}
         >
-          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-            <Text style={{ color: '#64748B', fontSize: 13 }}>
+          <Space vertical spacing={12} style={{ width: '100%' }}>
+            <Text type="tertiary">
               调用各种 API 端点的基础 API URL。
             </Text>
             <Input
               value={`${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1`}
               disabled
-              style={{ borderRadius: 8 }}
             />
           </Space>
         </Card>
 
         <Card
           title="API 文档"
-          style={{
-            background: '#FFFFFF',
-            borderRadius: 12,
-            borderColor: '#E2E8F0',
-          }}
           styles={{ body: { padding: '24px' } }}
         >
-          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-            <Text style={{ color: '#64748B', fontSize: 13 }}>
+          <Space vertical spacing={12} style={{ width: '100%' }}>
+            <Text type="tertiary">
               查看完整的 API 文档，了解所有可用的接口和使用方法。
             </Text>
             <Button
               type="primary"
-              icon={<ApiOutlined />}
+              icon={<IconCodeStroked />}
               onClick={() => window.open('/docs', '_blank')}
-              style={{
-                borderRadius: 8,
-                height: 38,
-                fontSize: 14,
-              }}
             >
               查看完整 API 文档
             </Button>
           </Space>
         </Card>
-      </Space>
+      </div>
     </>
   );
 }
 
 function SecurityTab() {
-  const [passwordForm] = Form.useForm();
+  const passwordFormApi = useRef<any>(null);
   const [loading, setLoading] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
 
   const handlePasswordUpdate = async (values: any) => {
     setLoading(true);
@@ -328,10 +320,10 @@ function SecurityTab() {
         old_password: values.currentPassword,
         new_password: values.newPassword,
       });
-      messageApi.success('密码修改成功');
-      passwordForm.resetFields();
+      Toast.success('密码修改成功');
+      passwordFormApi.current?.reset();
     } catch (error) {
-      messageApi.error(typeof error === 'string' ? error : '修改失败');
+      Toast.error(typeof error === 'string' ? error : '修改失败');
     } finally {
       setLoading(false);
     }
@@ -339,87 +331,70 @@ function SecurityTab() {
 
   return (
     <>
-      {contextHolder}
       <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0, color: '#1E293B', fontSize: 20, fontWeight: 600 }}>
+        <Title heading={3} style={{ margin: 0 }}>
           安全设置
         </Title>
       </div>
 
-      <Alert
-        message="密码安全提示"
-        description="建议使用包含大小写字母、数字和特殊字符的复杂密码，长度至少为 8 位。请定期修改密码以保护账户安全。"
-        type="info"
+      <Banner
+        description="密码安全提示：建议使用包含大小写字母、数字和特殊字符的复杂密码，长度至少为 8 位。请定期修改密码以保护账户安全。"
         showIcon
         style={{ marginBottom: 24 }}
       />
 
       <Card
         title="修改密码"
-        style={{
-          background: '#FFFFFF',
-          borderRadius: 12,
-          borderColor: '#E2E8F0',
-        }}
         styles={{ body: { padding: '24px' } }}
       >
         <Form
-          form={passwordForm}
+          getFormApi={(api) => { passwordFormApi.current = api; }}
           layout="vertical"
-          onFinish={handlePasswordUpdate}
+          onSubmit={handlePasswordUpdate}
         >
-          <Form.Item
+          <Form.Input
+            field="currentPassword"
             label="当前密码"
-            name="currentPassword"
+            mode="password"
             rules={[{ required: true, message: '请输入当前密码' }]}
-          >
-            <Input.Password style={{ borderRadius: 8 }} />
-          </Form.Item>
+          />
 
-          <Form.Item
+          <Form.Input
+            field="newPassword"
             label="新密码"
-            name="newPassword"
+            mode="password"
             rules={[
               { required: true, message: '请输入新密码' },
               { min: 6, message: '密码长度至少为 6 位' },
             ]}
-          >
-            <Input.Password style={{ borderRadius: 8 }} />
-          </Form.Item>
+          />
 
-          <Form.Item
+          <Form.Input
+            field="confirmPassword"
             label="确认密码"
-            name="confirmPassword"
-            dependencies={['newPassword']}
+            mode="password"
             rules={[
               { required: true, message: '请确认新密码' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('newPassword') === value) {
-                    return Promise.resolve();
+              {
+                validator: (_rule: any, value: string) => {
+                  const newPassword = passwordFormApi.current?.getValue('newPassword');
+                  if (!value || newPassword === value) {
+                    return true;
                   }
-                  return Promise.reject(new Error('两次输入的密码不一致'));
+                  return false;
                 },
-              }),
+                message: '两次输入的密码不一致',
+              },
             ]}
-          >
-            <Input.Password style={{ borderRadius: 8 }} />
-          </Form.Item>
+          />
 
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              style={{
-                borderRadius: 8,
-                height: 38,
-                fontSize: 14,
-              }}
-            >
-              更新密码
-            </Button>
-          </Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+          >
+            更新密码
+          </Button>
         </Form>
       </Card>
     </>
@@ -429,47 +404,20 @@ function SecurityTab() {
 function SettingsPage() {
   const { user, setUser } = useAppStore();
 
-  const tabItems = [
-    {
-      key: 'profile',
-      label: (
-        <span>
-          <UserOutlined />
-          个人资料
-        </span>
-      ),
-      children: <ProfileTab user={user} setUser={setUser} />,
-    },
-    {
-      key: 'api',
-      label: (
-        <span>
-          <ApiOutlined />
-          API
-        </span>
-      ),
-      children: <APITab />,
-    },
-    {
-      key: 'security',
-      label: (
-        <span>
-          <LockOutlined />
-          安全设置
-        </span>
-      ),
-      children: <SecurityTab />,
-    },
-  ];
-
   return (
-    <div style={{ padding: '24px' }}>
-      <Tabs
-        defaultActiveKey="profile"
-        items={tabItems}
-        size="large"
-      />
-    </div>
+    <>
+      <Tabs defaultActiveKey="profile" size="large">
+        <TabPane tab={<span><IconUser /> 个人资料</span>} itemKey="profile">
+          <ProfileTab user={user} setUser={setUser} />
+        </TabPane>
+        <TabPane tab={<span><IconCodeStroked /> API</span>} itemKey="api">
+          <APITab />
+        </TabPane>
+        <TabPane tab={<span><IconLock /> 安全设置</span>} itemKey="security">
+          <SecurityTab />
+        </TabPane>
+      </Tabs>
+    </>
   );
 }
 

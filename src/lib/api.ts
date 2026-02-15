@@ -53,8 +53,11 @@ rawApi.interceptors.response.use(
     return response.data;
   },
   async (error) => {
-    // 处理 401 未授权错误
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
+    // 登录接口的 401 不应该触发跳转，而是正常返回错误
+    const isLoginRequest = error.config?.url === '/auth/login' || error.config?.url?.includes('/auth/login');
+
+    // 处理 401 未授权错误（登录接口除外）
+    if (error.response?.status === 401 && typeof window !== 'undefined' && !isLoginRequest) {
       // 避免重复处理
       if (!isLoggingOut) {
         isLoggingOut = true;

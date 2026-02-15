@@ -9,7 +9,6 @@ import SettingsPage from '../pages/SettingsPage';
 import KnowledgeDocumentsPage from '../pages/KnowledgeDocumentsPage';
 import AppDetailPage from '../pages/AppDetailPage';
 import AppAnalyticsPage from '../pages/AppAnalyticsPage';
-import NewAppPage from '../pages/NewAppPage';
 import { Editor } from '../flowgram/editor';
 import SharePage from '../pages/SharePage';
 import UsersPage from '../pages/admin/UsersPage';
@@ -81,8 +80,9 @@ function AppRoutes() {
       <Route path="/share/:id" element={<SharePage />} />
 
       {/* 工作流页面 - 独立路由，不受 MainLayout 影响 */}
+      {/* :id 为可选参数，新建工作流时为空 */}
       <Route
-        path="/workflow"
+        path="/workflow/:id?"
         element={
           <ProtectedRoute>
             <Editor />
@@ -103,7 +103,6 @@ function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="apps" element={<AppsPage />} />
-        <Route path="apps/new" element={<NewAppPage />} />
         <Route path="apps/:id" element={<AppDetailPage />} />
         <Route path="apps/:id/analytics" element={<AppAnalyticsPage />} />
         <Route path="knowledge/:id/documents" element={<KnowledgeDocumentsPage />} />

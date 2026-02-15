@@ -9,11 +9,11 @@ import {
   usePlaygroundTools,
   type InteractiveType as IdeInteractiveType,
 } from '@flowgram.ai/free-layout-editor';
-import { Tooltip, Popover } from '@douyinfe/semi-ui';
+import { Tooltip, Button, Dropdown } from '@douyinfe/semi-ui';
 
 import { useI18n } from '@flowgram/hooks';
-
-import { MousePadSelector } from './mouse-pad-selector';
+import { IconMouseTool } from '../../assets/icon-mouse';
+import { IconPadTool } from '../../assets/icon-pad';
 
 export const CACHE_KEY = 'workflow_prefer_interactive_type';
 export const IS_MAC_OS = /(Macintosh|MacIntel|MacPPC|Mac68K|iPad)/.test(navigator.userAgent);
@@ -38,64 +38,58 @@ export enum InteractiveType {
 export const Interactive = () => {
   const i18n = useI18n();
   const tools = usePlaygroundTools();
-  const [visible, setVisible] = useState(false);
 
   const [interactiveType, setInteractiveType] = useState<InteractiveType>(
     () => getPreferInteractiveType() as InteractiveType
   );
 
-  const [showInteractivePanel, setShowInteractivePanel] = useState(false);
-
-  const mousePadTooltip =
-    interactiveType === InteractiveType.Mouse ? i18n.t('mouseMode') : i18n.t('touchpadMode');
-
   useEffect(() => {
-    // read from localStorage
     const preferInteractiveType = getPreferInteractiveType();
     tools.setInteractiveType(preferInteractiveType as IdeInteractiveType);
-  }, []);
+  }, [tools]);
 
-  const handleClose = () => {
-    setVisible(false);
-  };
+  const isMouseMode = interactiveType === InteractiveType.Mouse;
+  const tooltip = isMouseMode ? '鼠标友好' : '触控板友好';
+  const currentIcon = isMouseMode ? <IconMouseTool /> : <IconPadTool />;
 
   return (
-    <Popover trigger="custom" position="top" visible={visible} onClickOutSide={handleClose}>
-      <Tooltip
-        content={mousePadTooltip}
-        style={{ display: showInteractivePanel ? 'none' : 'block' }}
-      >
-        <div className="workflow-toolbar-interactive">
-          <MousePadSelector
-            value={interactiveType}
-            onChange={(value) => {
-              setInteractiveType(value);
-              setPreferInteractiveType(value);
-              tools.setInteractiveType(value as unknown as IdeInteractiveType);
+    <Dropdown
+      trigger="click"
+      position="top"
+      render={
+        <Dropdown.Menu>
+          <Dropdown.Item
+            selected={interactiveType === InteractiveType.Mouse}
+            onClick={() => {
+              setInteractiveType(InteractiveType.Mouse);
+              setPreferInteractiveType(InteractiveType.Mouse);
+              tools.setInteractiveType(InteractiveType.Mouse as unknown as IdeInteractiveType);
             }}
-            onPopupVisibleChange={setShowInteractivePanel}
-            containerStyle={{
-              border: 'none',
-              height: '32px',
-              width: '32px',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '2px',
-              padding: '4px',
-              borderRadius: 'var(--small, 6px)',
+          >
+            {i18n.t('mouseMode')}
+          </Dropdown.Item>
+          <Dropdown.Item
+            selected={interactiveType === InteractiveType.Pad}
+            onClick={() => {
+              setInteractiveType(InteractiveType.Pad);
+              setPreferInteractiveType(InteractiveType.Pad);
+              tools.setInteractiveType(InteractiveType.Pad as unknown as IdeInteractiveType);
             }}
-            iconStyle={{
-              margin: '0',
-              width: '16px',
-              height: '16px',
-            }}
-            arrowStyle={{
-              width: '12px',
-              height: '12px',
-            }}
-          />
-        </div>
+          >
+            {i18n.t('touchpadMode')}
+          </Dropdown.Item>
+        </Dropdown.Menu>
+      }
+    >
+      <Tooltip content={tooltip}>
+        <Button
+          icon={currentIcon}
+          size="small"
+          type="tertiary"
+          theme="borderless"
+          style={{ height: '32px', width: '32px', padding: '0' }}
+        />
       </Tooltip>
-    </Popover>
+    </Dropdown>
   );
 };

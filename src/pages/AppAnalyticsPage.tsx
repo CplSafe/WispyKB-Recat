@@ -7,31 +7,30 @@ import {
   Col,
   Space,
   Typography,
-  message,
-  Spin,
+  Toast,
+  Skeleton,
   Table,
   Tag,
   DatePicker,
   Divider,
-} from 'antd';
+} from '@douyinfe/semi-ui';
 import {
-  ArrowLeftOutlined,
-  BarChartOutlined,
-  MessageOutlined,
-  UserOutlined,
-  LikeOutlined,
-  DislikeOutlined,
-  GlobalOutlined,
-  RiseOutlined,
-  FallOutlined,
-  TrophyOutlined,
-  FireOutlined,
-} from '@ant-design/icons';
+  IconArrowLeft,
+  IconLineChartStroked,
+  IconComment,
+  IconUser,
+  IconLikeThumb,
+  IconDislikeThumb,
+  IconGlobe,
+  IconAscend,
+  IconDescend,
+  IconStarStroked,
+  IconBolt,
+} from '@douyinfe/semi-icons';
 import dayjs from 'dayjs';
 import api from '../lib/api';
 
 const { Text, Title } = Typography;
-const { RangePicker } = DatePicker;
 
 interface ChatRecord {
   id: string;
@@ -119,16 +118,16 @@ function MiniSparkline({ data, color, width = 80, height = 30 }: {
           strokeLinejoin="round"
         />
       </svg>
-      <span style={{
+      <Text style={{
         position: 'absolute',
         right: -4,
         top: '50%',
         transform: 'translateY(-50%)',
         fontSize: 10,
-        color: isUp ? '#10B981' : '#EF4444',
+        color: isUp ? 'var(--semi-color-success)' : 'var(--semi-color-danger)',
       }}>
-        {isUp ? <RiseOutlined /> : <FallOutlined />}
-      </span>
+        {isUp ? <IconAscend /> : <IconDescend />}
+      </Text>
     </div>
   );
 }
@@ -138,7 +137,7 @@ function CircularProgress({
   percent,
   size = 60,
   strokeWidth = 6,
-  color = '#10B981',
+  color = 'var(--semi-color-success)',
 }: {
   percent: number;
   size?: number;
@@ -156,7 +155,7 @@ function CircularProgress({
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="#E5E7EB"
+        stroke="var(--semi-color-border)"
         strokeWidth={strokeWidth}
       />
       <circle
@@ -187,12 +186,12 @@ function ProgressBar({ value, max, color, label }: {
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <Text style={{ fontSize: 13, color: '#475569' }}>{label}</Text>
-        <Text style={{ fontSize: 13, color: '#1E293B', fontWeight: 500 }}>{value}</Text>
+        <Text type="tertiary" style={{ fontSize: 13 }}>{label}</Text>
+        <Text style={{ fontSize: 13 }}>{value}</Text>
       </div>
       <div style={{
         height: 8,
-        background: '#F1F5F9',
+        background: 'var(--semi-color-bg-2)',
         borderRadius: 4,
         overflow: 'hidden',
       }}>
@@ -232,7 +231,7 @@ function MiniBarChart({ data, color, height = 100 }: {
               borderRadius: 4,
               transition: 'height 0.3s ease',
             }} />
-            <Text style={{ fontSize: 10, color: '#94A3B8', marginTop: 4 }}>
+            <Text type="quaternary" style={{ fontSize: 10, marginTop: 4 }}>
               {item.label}
             </Text>
           </div>
@@ -279,9 +278,8 @@ function DonutChart({ data, size = 120 }: {
         })}
       </svg>
       <div>
-        <Text style={{ fontSize: 24, fontWeight: 600, color: '#1E293B' }}>{total}</Text>
-        <br />
-        <Text style={{ fontSize: 12, color: '#64748B' }}>Total</Text>
+        <Title heading={3} style={{ margin: 0 }}>{total}</Title>
+        <Text type="tertiary" style={{ fontSize: 12 }}>Total</Text>
       </div>
     </div>
   );
@@ -297,16 +295,15 @@ const StatCard = ({ title, value, icon, gradient, sparkline }: {
 }) => (
   <Card
     style={{
-      borderRadius: 12,
       background: gradient,
       border: 'none',
       overflow: 'hidden',
       position: 'relative',
     }}
-    styles={{ body: { padding: '20px' } }}
+    bodyStyle={{ padding: '20px' }}
   >
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-      <Space orientation="vertical" size={4}>
+      <Space vertical size={4}>
         <div style={{
           width: 44,
           height: 44,
@@ -319,7 +316,7 @@ const StatCard = ({ title, value, icon, gradient, sparkline }: {
           {icon}
         </div>
         <Text style={{ color: '#fff', opacity: 0.9, fontSize: 13 }}>{title}</Text>
-        <Text style={{ color: '#fff', fontSize: 28, fontWeight: 700, lineHeight: 1 }}>
+        <Text style={{ color: '#fff', fontSize: 28, lineHeight: 1 }}>
           {value.toLocaleString()}
         </Text>
       </Space>
@@ -334,13 +331,12 @@ function AppAnalyticsPage() {
   const navigate = useNavigate();
   const params = useParams();
   const appId = (params?.id as string) || '';
-  const [messageApi, contextHolder] = message.useMessage();
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
-    dayjs().subtract(7, 'days'),
-    dayjs(),
+  const [dateRange, setDateRange] = useState<[Date, Date]>([
+    dayjs().subtract(7, 'days').toDate(),
+    dayjs().toDate(),
   ]);
 
   const fetchAnalytics = async () => {
@@ -348,12 +344,12 @@ function AppAnalyticsPage() {
     try {
       const [startDate, endDate] = dateRange;
       const analyticsData = await api.get(
-        `/applications/${appId}/analytics?start_date=${startDate.format('YYYY-MM-DD')}&end_date=${endDate.format('YYYY-MM-DD')}`
+        `/applications/${appId}/analytics?start_date=${dayjs(startDate).format('YYYY-MM-DD')}&end_date=${dayjs(endDate).format('YYYY-MM-DD')}`
       );
       setData(analyticsData);
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
-      messageApi.error(typeof error === 'string' ? error : 'Failed to fetch analytics data');
+      Toast.error(typeof error === 'string' ? error : 'Failed to fetch analytics data');
     } finally {
       setLoading(false);
     }
@@ -380,8 +376,8 @@ function AppAnalyticsPage() {
 
   // Prepare feedback data donut chart
   const feedbackData = [
-    { label: 'Likes', value: totalLikes, color: '#10B981' },
-    { label: 'Dislikes', value: totalDislikes, color: '#EF4444' },
+    { label: 'Likes', value: totalLikes, color: 'var(--semi-color-success)' },
+    { label: 'Dislikes', value: totalDislikes, color: 'var(--semi-color-danger)' },
   ];
 
   const chatColumns = [
@@ -425,7 +421,7 @@ function AppAnalyticsPage() {
       width: 120,
       render: (ip: string) => (
         <Space size={4}>
-          <GlobalOutlined style={{ fontSize: 12, color: '#94A3B8' }} />
+          <IconGlobe style={{ fontSize: 12, color: 'var(--semi-color-text-3)' }} />
           <Text style={{ fontSize: 12 }}>{ip || '-'}</Text>
         </Space>
       ),
@@ -437,10 +433,10 @@ function AppAnalyticsPage() {
       width: 80,
       render: (type: 'like' | 'dislike' | null) => {
         if (type === 'like') {
-          return <LikeOutlined style={{ color: '#10B981' }} />;
+          return <IconLikeThumb style={{ color: 'var(--semi-color-success)' }} />;
         }
         if (type === 'dislike') {
-          return <DislikeOutlined style={{ color: '#EF4444' }} />;
+          return <IconDislikeThumb style={{ color: 'var(--semi-color-danger)' }} />;
         }
         return <Text type="secondary">-</Text>;
       },
@@ -454,7 +450,7 @@ function AppAnalyticsPage() {
       key: 'ip',
       render: (ip: string) => (
         <Space size={4}>
-          <GlobalOutlined style={{ fontSize: 12, color: '#94A3B8' }} />
+          <IconGlobe style={{ fontSize: 12, color: 'var(--semi-color-text-3)' }} />
           <Text code style={{ fontSize: 12 }}>{ip}</Text>
         </Space>
       ),
@@ -473,44 +469,40 @@ function AppAnalyticsPage() {
 
   return (
     <>
-      {contextHolder}
-      <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
-        <Space orientation="vertical" size={24} style={{ width: '100%' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
             <Space size={16}>
               <Button
-                icon={<ArrowLeftOutlined />}
+                icon={<IconArrowLeft />}
                 onClick={() => navigate('/apps')}
-                style={{ borderRadius: 8 }}
               >
                 返回
               </Button>
               <div>
-                <Title level={3} style={{ margin: 0, color: '#1E293B', fontSize: 20, fontWeight: 600 }}>
+                <Title heading={4} style={{ margin: 0 }}>
                   应用分析
                 </Title>
-                <Text style={{ color: '#64748B', fontSize: 13 }}>
+                <Text type="tertiary" style={{ fontSize: 13 }}>
                   查看应用使用数据和交互记录
                 </Text>
               </div>
             </Space>
             <Space>
-              <RangePicker
+              <DatePicker
+                type="dateRange"
                 value={dateRange}
                 onChange={(dates) => {
-                  if (dates && dates[0] && dates[1]) {
-                    setDateRange([dates[0], dates[1]]);
+                  if (dates && Array.isArray(dates) && dates.length === 2) {
+                    setDateRange(dates as [Date, Date]);
                   }
                 }}
-                style={{ borderRadius: 8 }}
-                allowClear={false}
               />
               <Button
                 type="primary"
-                icon={<BarChartOutlined />}
+                icon={<IconLineChartStroked />}
                 onClick={fetchAnalytics}
-                style={{ borderRadius: 8 }}
               >
                 刷新
               </Button>
@@ -518,8 +510,13 @@ function AppAnalyticsPage() {
           </div>
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 80 }}>
-              <Spin size="large" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Skeleton.Title style={{ width: 200 }} />
+              <div style={{ display: 'flex', gap: 16 }}>
+                {[1, 2, 3, 4].map(i => <Skeleton.Image key={i} style={{ flex: 1, height: 120 }} />)}
+              </div>
+              <Skeleton.Title style={{ width: 150 }} />
+              <Skeleton.Paragraph rows={6} />
             </div>
           ) : data ? (
             <>
@@ -529,7 +526,7 @@ function AppAnalyticsPage() {
                   <StatCard
                     title="总消息数"
                     value={data?.messages?.total || 0}
-                    icon={<MessageOutlined style={{ fontSize: 20, color: '#fff' }} />}
+                    icon={<IconComment style={{ fontSize: 20, color: '#fff' }} />}
                     gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
                     sparkline={dailyTrendData}
                   />
@@ -538,7 +535,7 @@ function AppAnalyticsPage() {
                   <StatCard
                     title="对话数"
                     value={data?.conversations?.total || 0}
-                    icon={<UserOutlined style={{ fontSize: 20, color: '#fff' }} />}
+                    icon={<IconUser style={{ fontSize: 20, color: '#fff' }} />}
                     gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
                   />
                 </Col>
@@ -546,16 +543,16 @@ function AppAnalyticsPage() {
                   <StatCard
                     title="点赞数"
                     value={totalLikes}
-                    icon={<LikeOutlined style={{ fontSize: 20, color: '#fff' }} />}
-                    gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)"
+                    icon={<IconLikeThumb style={{ fontSize: 20, color: '#fff' }} />}
+                    gradient="linear-gradient(135deg, var(--semi-color-success) 0%, var(--semi-color-success-active) 100%)"
                   />
                 </Col>
                 <Col xs={24} sm={12} lg={6}>
                   <StatCard
                     title="差评数"
                     value={totalDislikes}
-                    icon={<DislikeOutlined style={{ fontSize: 20, color: '#fff' }} />}
-                    gradient="linear-gradient(135deg, #EF4444 0%, #DC2626 100%)"
+                    icon={<IconDislikeThumb style={{ fontSize: 20, color: '#fff' }} />}
+                    gradient="linear-gradient(135deg, var(--semi-color-danger) 0%, var(--semi-color-danger-active) 100%)"
                   />
                 </Col>
               </Row>
@@ -567,15 +564,14 @@ function AppAnalyticsPage() {
                   <Card
                     title={
                       <Space size={8}>
-                        <BarChartOutlined style={{ color: '#2563EB' }} />
+                        <IconLineChartStroked style={{ color: 'var(--semi-color-primary)' }} />
                         <Text strong>每日消息趋势</Text>
                       </Space>
                     }
-                    style={{ borderRadius: 12 }}
-                    styles={{ body: { padding: '20px' } }}
+                    bodyStyle={{ padding: '20px' }}
                   >
                     {barChartData.length > 0 ? (
-                      <MiniBarChart data={barChartData} color="#2563EB" height={140} />
+                      <MiniBarChart data={barChartData} color="var(--semi-color-primary)" height={140} />
                     ) : (
                       <Text type="secondary">暂无数据</Text>
                     )}
@@ -587,12 +583,11 @@ function AppAnalyticsPage() {
                   <Card
                     title={
                       <Space size={8}>
-                        <TrophyOutlined style={{ color: '#F59E0B' }} />
+                        <IconStarStroked style={{ color: 'var(--semi-color-warning)' }} />
                         <Text strong>满意度分析</Text>
                       </Space>
                     }
-                    style={{ borderRadius: 12 }}
-                    styles={{ body: { padding: '20px' } }}
+                    bodyStyle={{ padding: '20px' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
                       {totalFeedback > 0 ? (
@@ -603,7 +598,7 @@ function AppAnalyticsPage() {
                                 percent={satisfactionRate}
                                 size={100}
                                 strokeWidth={10}
-                                color={satisfactionRate >= 70 ? '#10B981' : satisfactionRate >= 50 ? '#F59E0B' : '#EF4444'}
+                                color={satisfactionRate >= 70 ? 'var(--semi-color-success)' : satisfactionRate >= 50 ? 'var(--semi-color-warning)' : 'var(--semi-color-danger)'}
                               />
                               <div style={{
                                 position: 'absolute',
@@ -612,12 +607,12 @@ function AppAnalyticsPage() {
                                 transform: 'translate(-50%, -50%)',
                                 textAlign: 'center',
                               }}>
-                                <Text style={{ fontSize: 20, fontWeight: 700, color: '#1E293B' }}>
+                                <Text strong style={{ fontSize: 20 }}>
                                   {satisfactionRate}%
                                 </Text>
                               </div>
                             </div>
-                            <Text style={{ fontSize: 12, color: '#64748B', display: 'block', marginTop: 8 }}>
+                            <Text type="tertiary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
                               好评率
                             </Text>
                           </div>
@@ -625,20 +620,20 @@ function AppAnalyticsPage() {
                             <ProgressBar
                               value={data.feedback.likes}
                               max={totalFeedback}
-                              color="#10B981"
+                              color="var(--semi-color-success)"
                               label="点赞"
                             />
                             <ProgressBar
                               value={data.feedback.dislikes}
                               max={totalFeedback}
-                              color="#EF4444"
+                              color="var(--semi-color-danger)"
                               label="差评"
                             />
                           </div>
                         </>
                       ) : (
                         <div style={{ textAlign: 'center', padding: 20 }}>
-                          <FireOutlined style={{ fontSize: 40, color: '#E5E7EB' }} />
+                          <IconBolt style={{ fontSize: 40, color: 'var(--semi-color-border)' }} />
                           <Text type="secondary" style={{ display: 'block', marginTop: 12 }}>
                             暂无反馈数据
                           </Text>
@@ -656,23 +651,22 @@ function AppAnalyticsPage() {
                   <Card
                     title={
                       <Space size={8}>
-                        <LikeOutlined style={{ color: '#8B5CF6' }} />
+                        <IconLikeThumb style={{ color: 'var(--semi-color-primary)' }} />
                         <Text strong>反馈分布</Text>
                       </Space>
                     }
-                    style={{ borderRadius: 12 }}
-                    styles={{ body: { padding: '20px' } }}
+                    bodyStyle={{ padding: '20px' }}
                   >
                     {totalFeedback > 0 ? (
                       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 32 }}>
                         <DonutChart data={feedbackData} size={140} />
-                        <Space orientation="vertical" size={8}>
+                        <Space vertical size={8}>
                           <Space>
-                            <div style={{ width: 12, height: 12, borderRadius: 2, background: '#10B981' }} />
+                            <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--semi-color-success)' }} />
                             <Text>点赞 ({data.feedback.likes})</Text>
                           </Space>
                           <Space>
-                            <div style={{ width: 12, height: 12, borderRadius: 2, background: '#EF4444' }} />
+                            <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--semi-color-danger)' }} />
                             <Text>差评 ({data.feedback.dislikes})</Text>
                           </Space>
                         </Space>
@@ -690,42 +684,40 @@ function AppAnalyticsPage() {
                   <Card
                     title={
                       <Space size={8}>
-                        <GlobalOutlined style={{ color: '#06B6D4' }} />
+                        <IconGlobe style={{ color: 'var(--semi-color-tertiary)' }} />
                         <Text strong>前 5 访问来源</Text>
                       </Space>
                     }
-                    style={{ borderRadius: 12 }}
-                    styles={{ body: { padding: '20px' } }}
+                    bodyStyle={{ padding: '20px' }}
                   >
                     {data.ip_distribution && data.ip_distribution.length > 0 ? (
-                      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                      <Space vertical size={12} style={{ width: '100%' }}>
                         {data.ip_distribution.slice(0, 5).map((item, index) => {
                           const maxCount = data.ip_distribution![0].count || 1;
                           const percent = (item.count / maxCount) * 100;
-                          const colors = ['#2563EB', '#8B5CF6', '#06B6D4', '#10B981', '#F59E0B'];
+                          const colors = ['var(--semi-color-primary)', 'var(--semi-color-tertiary)', 'var(--semi-color-info)', 'var(--semi-color-success)', 'var(--semi-color-warning)'];
                           return (
                             <div key={item.ip}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                 <Space size={6}>
-                                  <span style={{
+                                  <Text style={{
                                     width: 20,
                                     height: 20,
                                     borderRadius: 4,
                                     background: colors[index],
-                                    color: '#fff',
+                                    color: 'var(--semi-color-bg-0)',
                                     fontSize: 11,
-                                    display: 'flex',
+                                    display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    fontWeight: 600,
-                                  }}>{index + 1}</span>
+                                  }}>{index + 1}</Text>
                                   <Text code style={{ fontSize: 12 }}>{item.ip}</Text>
                                 </Space>
-                                <Text style={{ fontSize: 13, fontWeight: 500 }}>{item.count} 次访问</Text>
+                                <Text style={{ fontSize: 13 }}>{item.count} 次访问</Text>
                               </div>
                               <div style={{
                                 height: 6,
-                                background: '#F1F5F9',
+                                background: 'var(--semi-color-bg-2)',
                                 borderRadius: 3,
                                 overflow: 'hidden',
                               }}>
@@ -755,11 +747,10 @@ function AppAnalyticsPage() {
                 <Card
                   title={
                     <Space size={8}>
-                      <MessageOutlined />
+                      <IconComment />
                       <Text strong>交互记录</Text>
                     </Space>
                   }
-                  style={{ borderRadius: 12 }}
                 >
                   <Table
                     columns={chatColumns}
@@ -780,11 +771,10 @@ function AppAnalyticsPage() {
                 <Card
                   title={
                     <Space size={8}>
-                      <GlobalOutlined />
+                      <IconGlobe />
                       <Text strong>IP 分布详情</Text>
                     </Space>
                   }
-                  style={{ borderRadius: 12 }}
                 >
                   <Table
                     columns={ipColumns}
@@ -800,11 +790,11 @@ function AppAnalyticsPage() {
               )}
             </>
           ) : (
-            <Card style={{ borderRadius: 12, textAlign: 'center', padding: 40 }}>
+            <Card style={{ textAlign: 'center', padding: 40 }}>
               <Text type="secondary">暂无可用数据</Text>
             </Card>
           )}
-        </Space>
+        </div>
       </div>
     </>
   );

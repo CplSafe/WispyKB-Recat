@@ -12,6 +12,7 @@ export interface I18nMessages {
   readonly: string;
   editable: string;
   comment: string;
+  annotation: string;
   download: string;
   problem: string;
   ungroup: string;
@@ -26,11 +27,13 @@ export interface I18nMessages {
   redo: string;
   addNode: string;
   testRun: string;
+  trialRun: string;
   cancel: string;
 
   // 保存状态
   saving: string;
   saved: string;
+  autoSaved: string;
   saveError: string;
   manualSave: string;
 
@@ -80,6 +83,27 @@ export interface I18nMessages {
   script: string;
   loopFor: string;
   loopOutputs: string;
+  topK: string;
+  method: string;
+  knowledgeBaseSelect: string;
+  mcpServiceSelect: string;
+  workflowAppSelect: string;
+  selectKnowledgeBase: string;
+  selectMcpService: string;
+  selectMethod: string;
+  selectWorkflowApp: string;
+  inputQueryUseVar: string;
+  inputParamsUseVar: string;
+  inputAppParamsUseVar: string;
+  inputTopK: string;
+  inputTimeout: string;
+  query: string;
+  queryRequired: string;
+  knowledgeBaseRequired: string;
+  mcpServiceRequired: string;
+  methodRequired: string;
+  workflowAppRequired: string;
+  timeoutRequired: string;
 
   // 节点名称和描述
   start: string;
@@ -99,6 +123,12 @@ export interface I18nMessages {
   llm: string;
   llmDesc: string;
   comment: string;
+  knowledgeBase: string;
+  knowledgeBaseDesc: string;
+  mcpService: string;
+  mcpServiceDesc: string;
+  workflowApp: string;
+  workflowAppDesc: string;
 
   // 语言切换
   language: string;
@@ -108,6 +138,39 @@ export interface I18nMessages {
   // 验证信息
   conditionRequired: string;
   downloadSuccess: string;
+
+  // 顶部栏
+  workflowApp: string;
+  publish: string;
+  publishSuccess: string;
+  history: string;
+  historyComingSoon: string;
+  export: string;
+  exportSuccess: string;
+  createCopy: string;
+  copySuccess: string;
+  copyComingSoon: string;
+
+  // 工作流编辑
+  untitledWorkflow: string;
+  workflow: string;
+  editWorkflowInfo: string;
+  icon: string;
+  uploadIcon: string;
+  name: string;
+  nameRequired: string;
+  enterName: string;
+  description: string;
+  enterDescription: string;
+  save: string;
+  updateSuccess: string;
+  justNow: string;
+  minutesAgo: string;
+  saveFailed: string;
+  versionHistory: string;
+  noVersions: string;
+  versionRestoreComingSoon: string;
+  published: string;
 }
 
 const zhCN: I18nMessages = {
@@ -117,6 +180,7 @@ const zhCN: I18nMessages = {
   readonly: '只读',
   editable: '可编辑',
   comment: '添加备注',
+  annotation: '注释',
   download: '下载',
   problem: '问题',
   ungroup: '取消分组',
@@ -127,15 +191,18 @@ const zhCN: I18nMessages = {
   zoomTo: '缩放到',
   mouseMode: '鼠标模式',
   touchpadMode: '触控板模式',
+  current: '当前',
   undo: '撤销',
   redo: '重做',
   addNode: '添加节点',
   testRun: '运行测试',
+  trialRun: '试运行',
   cancel: '取消',
 
   // 保存状态
   saving: '保存中...',
   saved: '已保存',
+  autoSaved: '已自动保存',
   saveError: '保存失败',
   manualSave: '保存',
 
@@ -185,6 +252,27 @@ const zhCN: I18nMessages = {
   script: '脚本',
   loopFor: '循环',
   loopOutputs: '循环输出',
+  topK: '返回数量',
+  method: '调用方法',
+  knowledgeBaseSelect: '选择知识库',
+  mcpServiceSelect: '选择 MCP 服务',
+  workflowAppSelect: '选择工作流应用',
+  selectKnowledgeBase: '请选择知识库',
+  selectMcpService: '请选择 MCP 服务',
+  selectMethod: '请选择调用方法',
+  selectWorkflowApp: '请选择工作流应用',
+  inputQueryUseVar: '输入查询内容，使用变量通过 {',
+  inputParamsUseVar: '输入方法参数（JSON格式），使用变量通过 {',
+  inputAppParamsUseVar: '输入应用参数（JSON格式），使用变量通过 {',
+  inputTopK: '请输入返回数量',
+  inputTimeout: '请输入超时时间（毫秒）',
+  query: '查询内容',
+  queryRequired: '查询内容为必填项',
+  knowledgeBaseRequired: '请选择知识库',
+  mcpServiceRequired: '请选择 MCP 服务',
+  methodRequired: '请选择调用方法',
+  workflowAppRequired: '请选择工作流应用',
+  timeoutRequired: '超时时间为必填项',
 
   // 节点名称和描述
   start: '开始',
@@ -204,6 +292,12 @@ const zhCN: I18nMessages = {
   llm: '大模型',
   llmDesc: '调用大语言模型，使用变量和提示词生成响应。',
   comment: '备注',
+  knowledgeBase: '知识库',
+  knowledgeBaseDesc: '从知识库中检索相关信息，支持向量搜索和语义匹配。',
+  mcpService: 'MCP 服务',
+  mcpServiceDesc: '调用 MCP (Model Context Protocol) 服务，扩展系统能力。',
+  workflowApp: '工作流应用',
+  workflowAppDesc: '调用已创建的工作流应用，实现工作流嵌套和复用。',
 
   // 语言切换
   language: '语言',
@@ -213,6 +307,39 @@ const zhCN: I18nMessages = {
   // 验证信息
   conditionRequired: '条件为必填项',
   downloadSuccess: '下载 {{label}} 成功',
+
+  // 顶部栏
+  workflowApp: '工作流应用',
+  publish: '发布',
+  publishSuccess: '发布成功',
+  history: '历史',
+  historyComingSoon: '历史版本功能即将推出',
+  export: '导出',
+  exportSuccess: '导出成功',
+  createCopy: '创建副本',
+  copySuccess: '副本创建成功',
+  copyComingSoon: '创建副本功能即将推出',
+
+  // 工作流编辑
+  untitledWorkflow: '未命名工作流',
+  workflow: '工作流',
+  editWorkflowInfo: '编辑工作流信息',
+  icon: '图标',
+  uploadIcon: '上传图标',
+  name: '名称',
+  nameRequired: '请输入名称',
+  enterName: '请输入名称',
+  description: '描述',
+  enterDescription: '请输入描述',
+  save: '保存',
+  updateSuccess: '更新成功',
+  justNow: '刚刚保存',
+  minutesAgo: '分钟前保存',
+  saveFailed: '保存失败',
+  versionHistory: '历史版本',
+  noVersions: '暂无历史版本',
+  versionRestoreComingSoon: '版本恢复功能即将推出',
+  published: '已发布',
 };
 
 const enUS: I18nMessages = {
@@ -222,6 +349,7 @@ const enUS: I18nMessages = {
   readonly: 'Readonly',
   editable: 'Editable',
   comment: 'Comment',
+  annotation: 'Annotation',
   download: 'Download',
   problem: 'Problem',
   ungroup: 'Ungroup',
@@ -232,15 +360,18 @@ const enUS: I18nMessages = {
   zoomTo: 'Zoom to',
   mouseMode: 'Mouse-Friendly',
   touchpadMode: 'Touchpad-Friendly',
+  current: 'Current',
   undo: 'Undo',
   redo: 'Redo',
   addNode: 'Add Node',
   testRun: 'Test Run',
+  trialRun: 'Trial Run',
   cancel: 'Cancel',
 
   // 保存状态
   saving: 'Saving...',
   saved: 'Saved',
+  autoSaved: 'Auto-saved',
   saveError: 'Save Failed',
   manualSave: 'Save',
 
@@ -290,6 +421,27 @@ const enUS: I18nMessages = {
   script: 'Script',
   loopFor: 'Loop For',
   loopOutputs: 'Loop Outputs',
+  topK: 'Top K',
+  method: 'Method',
+  knowledgeBaseSelect: 'Select Knowledge Base',
+  mcpServiceSelect: 'Select MCP Service',
+  workflowAppSelect: 'Select Workflow App',
+  selectKnowledgeBase: 'Please select knowledge base',
+  selectMcpService: 'Please select MCP service',
+  selectMethod: 'Please select method',
+  selectWorkflowApp: 'Please select workflow app',
+  inputQueryUseVar: 'Input query, use var by {',
+  inputParamsUseVar: 'Input method params (JSON), use var by {',
+  inputAppParamsUseVar: 'Input app params (JSON), use var by {',
+  inputTopK: 'Please input return count',
+  inputTimeout: 'Please input timeout (ms)',
+  query: 'Query',
+  queryRequired: 'Query is required',
+  knowledgeBaseRequired: 'Knowledge base is required',
+  mcpServiceRequired: 'MCP service is required',
+  methodRequired: 'Method is required',
+  workflowAppRequired: 'Workflow app is required',
+  timeoutRequired: 'Timeout is required',
 
   // 节点名称和描述
   start: 'Start',
@@ -309,6 +461,12 @@ const enUS: I18nMessages = {
   llm: 'LLM',
   llmDesc: 'Call the large language model and use variables and prompt words to generate responses.',
   comment: 'Comment',
+  knowledgeBase: 'Knowledge Base',
+  knowledgeBaseDesc: 'Retrieve relevant information from knowledge base, supports vector search and semantic matching.',
+  mcpService: 'MCP Service',
+  mcpServiceDesc: 'Call MCP (Model Context Protocol) service to extend system capabilities.',
+  workflowApp: 'Workflow App',
+  workflowAppDesc: 'Call an existing workflow app to enable workflow nesting and reuse.',
 
   // 语言切换
   language: 'Language',
@@ -318,6 +476,39 @@ const enUS: I18nMessages = {
   // 验证信息
   conditionRequired: 'Condition is required',
   downloadSuccess: 'Download {{label}} successfully',
+
+  // 顶部栏
+  workflowApp: 'Workflow App',
+  publish: 'Publish',
+  publishSuccess: 'Published successfully',
+  history: 'History',
+  historyComingSoon: 'History versions coming soon',
+  export: 'Export',
+  exportSuccess: 'Exported successfully',
+  createCopy: 'Create Copy',
+  copySuccess: 'Copy created successfully',
+  copyComingSoon: 'Create copy feature coming soon',
+
+  // 工作流编辑
+  untitledWorkflow: 'Untitled Workflow',
+  workflow: 'Workflow',
+  editWorkflowInfo: 'Edit Workflow Info',
+  icon: 'Icon',
+  uploadIcon: 'Upload Icon',
+  name: 'Name',
+  nameRequired: 'Name is required',
+  enterName: 'Enter name',
+  description: 'Description',
+  enterDescription: 'Enter description',
+  save: 'Save',
+  updateSuccess: 'Updated successfully',
+  justNow: 'Just saved',
+  minutesAgo: 'minutes ago',
+  saveFailed: 'Save failed',
+  versionHistory: 'Version History',
+  noVersions: 'No versions yet',
+  versionRestoreComingSoon: 'Version restore coming soon',
+  published: 'Published',
 };
 
 const messages: Record<Locale, I18nMessages> = {

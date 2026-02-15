@@ -1,0 +1,36 @@
+/**
+ * 无障碍增强样式
+ * 遵循 WCAG 2.1 AA 级别标准
+ */
+
+/* 焦点可见性 (WCAG 2.4.7) */
+/* 排除 Semi-UI 组件，它们已有内置 focus 样式 */
+*:focus-visible:not(.semi-input-wrapper):not(.semi-textarea-wrapper):not(.semi-select):not(.semi-datepicker):not(.semi-cascader):not(.semi-tree-select):not(.semi-autocomplete):not(.semi-inputnumber):not([class*="semi-"]) {
+  outline: 2px solid var(--semi-color-primary) !important;
+  outline-offset: 2px !important;
+}
+
+/* 减少动画 (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 屏幕阅读器专用 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
