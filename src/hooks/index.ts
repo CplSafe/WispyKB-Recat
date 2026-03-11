@@ -8,7 +8,8 @@ export {
   useResponsiveStyles,
   useMediaQuery,
   BREAKPOINTS,
-} from './useResponsive';
+} from "./useResponsive";
 
-// 可以继续添加其他 Hooks
-// export { useDebounce, useThrottle } from './usePerformance';
+// 任务进度 Hooks
+export { useTaskProgress } from "./useTaskProgress";
+export type { TaskProgress } from "./useTaskProgress";
