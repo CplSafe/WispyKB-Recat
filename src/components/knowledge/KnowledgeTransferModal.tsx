@@ -480,7 +480,7 @@ export default function KnowledgeTransferModal({
   return (
     <Sidebar.Container
       visible={visible}
-      title={mode === "create" ? "新建知识库" : `管理文档 - ${kbName}`}
+      title={mode === "create" ? "新建知识库" : `管理文档 - ${propKbName}`}
       onCancel={handleCancel}
       defaultSize={{ width: 560 }}
     >
