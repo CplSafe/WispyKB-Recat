@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Input,
   Button,
@@ -14,7 +14,7 @@ import {
   List,
   Pagination,
   Tooltip,
-} from '@douyinfe/semi-ui';
+} from "@douyinfe/semi-ui";
 import {
   IconPlus,
   IconSearch,
@@ -23,8 +23,9 @@ import {
   IconUpload,
   IconEdit,
   IconFile,
-} from '@douyinfe/semi-icons';
-import KnowledgeTransferModal from '../components/knowledge/KnowledgeTransferModal';
+} from "@douyinfe/semi-icons";
+import KnowledgeTransferModal from "../components/knowledge/KnowledgeTransferModal";
+import api from "../lib/api";
 
 const { Text, Title } = Typography;
 
@@ -43,29 +44,25 @@ interface KnowledgeBase {
 
 function KnowledgePage() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
   const [transferModalOpen, setTransferModalOpen] = useState(false);
-  const [transferMode, setTransferMode] = useState<'create' | 'upload'>('create');
+  const [transferMode, setTransferMode] = useState<"create" | "upload">(
+    "create",
+  );
   const [selectedKB, setSelectedKB] = useState<KnowledgeBase | null>(null);
 
   const fetchKnowledgeBases = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/knowledge-bases`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setKnowledgeBases(data.knowledge_bases || []);
-      }
+      const data = await api.get("/knowledge-bases");
+      setKnowledgeBases(data.knowledge_bases || []);
     } catch (error) {
-      console.error('Failed to fetch knowledge bases:', error);
+      console.error("Failed to fetch knowledge bases:", error);
     } finally {
       setLoading(false);
     }
@@ -80,32 +77,24 @@ function KnowledgePage() {
   }, [searchQuery]);
 
   const handleOpenCreateModal = () => {
-    setTransferMode('create');
+    setTransferMode("create");
     setSelectedKB(null);
     setTransferModalOpen(true);
   };
 
   const handleOpenUploadModal = (kb: KnowledgeBase) => {
-    setTransferMode('upload');
+    setTransferMode("upload");
     setSelectedKB(kb);
     setTransferModalOpen(true);
   };
 
   const handleDeleteKB = async (id: string) => {
     try {
-      const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/knowledge-bases/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (response.ok) {
-        setKnowledgeBases(knowledgeBases.filter(kb => kb.id !== id));
-        Toast.success('知识库已删除');
-      } else {
-        Toast.error('删除失败');
-      }
+      await api.delete(`/knowledge-bases/${id}`);
+      setKnowledgeBases(knowledgeBases.filter((kb) => kb.id !== id));
+      Toast.success("知识库已删除");
     } catch (error) {
-      Toast.error('删除失败');
+      Toast.error("删除失败");
     }
   };
 
@@ -113,22 +102,39 @@ function KnowledgePage() {
     navigate(`/knowledge/${kb.id}/documents`);
   };
 
-  const filteredKBs = knowledgeBases.filter(kb =>
-    kb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    kb.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredKBs = knowledgeBases.filter(
+    (kb) =>
+      kb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      kb.description?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const paginatedData = filteredKBs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginatedData = filteredKBs.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   return (
     <div style={{ padding: 24 }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 24,
+        }}
+      >
         <div>
-          <Title heading={3} style={{ margin: 0 }}>知识库</Title>
+          <Title heading={3} style={{ margin: 0 }}>
+            知识库
+          </Title>
           <Text type="tertiary">管理您的知识库和文档</Text>
         </div>
-        <Button type="primary" icon={<IconPlus />} onClick={handleOpenCreateModal}>
+        <Button
+          type="primary"
+          icon={<IconPlus />}
+          onClick={handleOpenCreateModal}
+        >
           新建知识库
         </Button>
       </div>
@@ -154,79 +160,172 @@ function KnowledgePage() {
         <List
           dataSource={paginatedData}
           style={{ minHeight: 400 }}
-          emptyContent={<Empty description={searchQuery ? '没有找到匹配的知识库' : '还没有创建任何知识库'} />}
+          emptyContent={
+            <Empty
+              description={
+                searchQuery ? "没有找到匹配的知识库" : "还没有创建任何知识库"
+              }
+            />
+          }
           renderItem={(kb) => (
             <List.Item
               style={{
-                padding: '16px 20px',
-                cursor: 'pointer',
-                borderBottom: '1px solid var(--semi-color-border)',
-                transition: 'background-color 0.2s',
+                padding: "16px 20px",
+                cursor: "pointer",
+                borderBottom: "1px solid var(--semi-color-border)",
+                transition: "background-color 0.2s",
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--semi-color-fill-0)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  "var(--semi-color-fill-0)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "transparent")
+              }
               onClick={() => handleViewDocuments(kb)}
             >
-              <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: 16 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  width: "100%",
+                  gap: 16,
+                }}
+              >
                 {/* 图标 */}
                 <div
                   style={{
                     width: 44,
                     height: 44,
                     borderRadius: 10,
-                    background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     flexShrink: 0,
                   }}
                 >
-                  <IconUpload style={{ fontSize: 20, color: '#fff' }} />
+                  <IconUpload style={{ fontSize: 20, color: "#fff" }} />
                 </div>
 
                 {/* 主信息 */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Text strong style={{ fontSize: 15 }}>{kb.name}</Text>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <Text strong style={{ fontSize: 15 }}>
+                      {kb.name}
+                    </Text>
                   </div>
-                  <Text type="tertiary" size="small" style={{ display: 'block', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {kb.description || '暂无描述'}
+                  <Text
+                    type="tertiary"
+                    size="small"
+                    style={{
+                      display: "block",
+                      marginTop: 4,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {kb.description || "暂无描述"}
                   </Text>
                 </div>
 
                 {/* 创建者 */}
                 {kb.owner_name && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    <Avatar size="extra-small" src={kb.owner_avatar?.startsWith('http') ? kb.owner_avatar : undefined} style={{ backgroundColor: 'var(--semi-color-primary)' }}>
-                      {!kb.owner_avatar && kb.owner_name?.slice(0, 1).toUpperCase()}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Avatar
+                      size="extra-small"
+                      src={
+                        kb.owner_avatar?.startsWith("http")
+                          ? kb.owner_avatar
+                          : undefined
+                      }
+                      style={{ backgroundColor: "var(--semi-color-primary)" }}
+                    >
+                      {!kb.owner_avatar &&
+                        kb.owner_name?.slice(0, 1).toUpperCase()}
                     </Avatar>
-                    <Text type="tertiary" size="small">{kb.owner_name}</Text>
+                    <Text type="tertiary" size="small">
+                      {kb.owner_name}
+                    </Text>
                   </div>
                 )}
 
                 {/* 标签 */}
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                  <Tag size="small">{kb.embedding_model || 'nomic-embed-text'}</Tag>
-                  <Tag size="small" color="blue" prefixIcon={<IconFile style={{ fontSize: 10 }} />}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Tag size="small">
+                    {kb.embedding_model || "nomic-embed-text"}
+                  </Tag>
+                  <Tag
+                    size="small"
+                    color="blue"
+                    prefixIcon={<IconFile style={{ fontSize: 10 }} />}
+                  >
                     {kb.doc_count || 0} 文档
                   </Tag>
                 </div>
 
                 {/* 时间 */}
-                <Text type="tertiary" size="small" style={{ width: 100, textAlign: 'right', flexShrink: 0 }}>
-                  {new Date(kb.created_at || '').toLocaleDateString('zh-CN')}
+                <Text
+                  type="tertiary"
+                  size="small"
+                  style={{ width: 100, textAlign: "right", flexShrink: 0 }}
+                >
+                  {new Date(kb.created_at || "").toLocaleDateString("zh-CN")}
                 </Text>
 
                 {/* 操作按钮 */}
-                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                <div
+                  style={{ display: "flex", gap: 4, flexShrink: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Tooltip content="管理文档">
-                    <Button type="tertiary" icon={<IconEdit />} size="small" theme="borderless" onClick={() => handleOpenUploadModal(kb)} />
+                    <Button
+                      type="tertiary"
+                      icon={<IconEdit />}
+                      size="small"
+                      theme="borderless"
+                      onClick={() => handleOpenUploadModal(kb)}
+                    />
                   </Tooltip>
                   <Tooltip content="查看">
-                    <Button type="tertiary" icon={<IconEyeOpened />} size="small" theme="borderless" onClick={() => handleViewDocuments(kb)} />
+                    <Button
+                      type="tertiary"
+                      icon={<IconEyeOpened />}
+                      size="small"
+                      theme="borderless"
+                      onClick={() => handleViewDocuments(kb)}
+                    />
                   </Tooltip>
-                  <Popconfirm title="确定删除？" content="此操作不可撤销" onConfirm={() => handleDeleteKB(kb.id)}>
-                    <Button type="tertiary" icon={<IconDelete />} size="small" theme="borderless" style={{ color: 'var(--semi-color-danger)' }} />
+                  <Popconfirm
+                    title="确定删除？"
+                    content="此操作不可撤销"
+                    position="leftBottom"
+                    onConfirm={() => handleDeleteKB(kb.id)}
+                  >
+                    <Button
+                      type="tertiary"
+                      icon={<IconDelete />}
+                      size="small"
+                      theme="borderless"
+                      style={{ color: "var(--semi-color-danger)" }}
+                    />
                   </Popconfirm>
                 </div>
               </div>
@@ -237,8 +336,15 @@ function KnowledgePage() {
 
       {/* Pagination */}
       {filteredKBs.length > pageSize && (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
-          <Pagination total={filteredKBs.length} pageSize={pageSize} currentPage={currentPage} onChange={setCurrentPage} />
+        <div
+          style={{ display: "flex", justifyContent: "center", marginTop: 24 }}
+        >
+          <Pagination
+            total={filteredKBs.length}
+            pageSize={pageSize}
+            currentPage={currentPage}
+            onChange={setCurrentPage}
+          />
         </div>
       )}
 
