@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Input,
@@ -15,6 +15,7 @@ import {
   Pagination,
   Tooltip,
   Spin,
+  Progress,
 } from "@douyinfe/semi-ui";
 import {
   IconPlus,
@@ -58,6 +59,19 @@ function KnowledgePage() {
   );
   const [selectedKB, setSelectedKB] = useState<KnowledgeBase | null>(null);
 
+  // 处理进度状态: kb_id -> { overall_progress, documents, processing_count }
+  const [processingProgress, setProcessingProgress] = useState<Record<string, {
+    overall_progress: number;
+    processing_count: number;
+    documents: Array<{
+      doc_id: string;
+      filename: string;
+      progress: number;
+      message: string;
+    }>;
+  }>>({});
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const fetchKnowledgeBases = async () => {
     setLoading(true);
     try {
@@ -70,9 +84,64 @@ function KnowledgePage() {
     }
   };
 
+  // 获取单个知识库的处理进度
+  const fetchKBProgress = useCallback(async (kbId: string) => {
+    try {
+      const data = await api.get(`/knowledge-bases/${kbId}/processing-progress`);
+      if (data.processing_count > 0) {
+        setProcessingProgress(prev => ({
+          ...prev,
+          [kbId]: data
+        }));
+      } else {
+        // 没有处理中的文档，清除该 KB 的进度状态
+        setProcessingProgress(prev => {
+          const next = { ...prev };
+          delete next[kbId];
+          return next;
+        });
+      }
+    } catch (error) {
+      console.error(`Failed to fetch progress for KB ${kbId}:`, error);
+    }
+  }, []);
+
+  // 轮询所有处理中的知识库进度
+  const pollProcessingProgress = useCallback(async () => {
+    const processingKBs = knowledgeBases.filter(kb => (kb.processing_count ?? 0) > 0);
+    if (processingKBs.length === 0) return;
+
+    // 并行获取所有处理中 KB 的进度
+    await Promise.all(processingKBs.map(kb => fetchKBProgress(kb.id)));
+  }, [knowledgeBases, fetchKBProgress]);
+
   useEffect(() => {
     fetchKnowledgeBases();
   }, []);
+
+  // 当知识库列表更新时，启动/停止轮询
+  useEffect(() => {
+    const hasProcessing = knowledgeBases.some(kb => (kb.processing_count ?? 0) > 0);
+
+    if (hasProcessing && !pollingRef.current) {
+      // 立即获取一次进度
+      pollProcessingProgress();
+      // 每3秒轮询一次
+      pollingRef.current = setInterval(pollProcessingProgress, 3000);
+    } else if (!hasProcessing && pollingRef.current) {
+      // 没有处理中的 KB，停止轮询
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+      setProcessingProgress({});
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [knowledgeBases, pollProcessingProgress]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -280,15 +349,28 @@ function KnowledgePage() {
                     {kb.doc_count || 0} 文档
                   </Tag>
                   {(kb.processing_count ?? 0) > 0 && (
-                    <Tag
-                      size="small"
-                      color="orange"
-                      prefixIcon={
-                        <Spin size="small" style={{ marginRight: 4 }} />
-                      }
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "2px 8px",
+                        background: "var(--semi-color-warning-light-default)",
+                        borderRadius: 4,
+                      }}
                     >
-                      {kb.processing_count} 处理中
-                    </Tag>
+                      <Spin size="small" />
+                      <Progress
+                        size="small"
+                        percent={processingProgress[kb.id]?.overall_progress ?? 0}
+                        style={{ width: 60 }}
+                        stroke="var(--semi-color-warning)"
+                        showInfo={false}
+                      />
+                      <Text size="small" style={{ minWidth: 36 }}>
+                        {Math.round(processingProgress[kb.id]?.overall_progress ?? 0)}%
+                      </Text>
+                    </div>
                   )}
                 </div>
 
