@@ -14,6 +14,7 @@ import {
   List,
   Pagination,
   Tooltip,
+  Spin,
 } from "@douyinfe/semi-ui";
 import {
   IconPlus,
@@ -34,6 +35,7 @@ interface KnowledgeBase {
   name: string;
   description?: string;
   doc_count?: number;
+  processing_count?: number;
   embedding_model?: string;
   updated_at?: string;
   created_at?: string;
@@ -269,9 +271,7 @@ function KnowledgePage() {
                     flexShrink: 0,
                   }}
                 >
-                  <Tag size="small">
-                    {kb.embedding_model || "nomic-embed-text"}
-                  </Tag>
+                  <Tag size="small">{kb.embedding_model || "embedding"}</Tag>
                   <Tag
                     size="small"
                     color="blue"
@@ -279,6 +279,17 @@ function KnowledgePage() {
                   >
                     {kb.doc_count || 0} 文档
                   </Tag>
+                  {(kb.processing_count ?? 0) > 0 && (
+                    <Tag
+                      size="small"
+                      color="orange"
+                      prefixIcon={
+                        <Spin size="small" style={{ marginRight: 4 }} />
+                      }
+                    >
+                      {kb.processing_count} 处理中
+                    </Tag>
+                  )}
                 </div>
 
                 {/* 时间 */}
