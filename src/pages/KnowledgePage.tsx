@@ -60,16 +60,21 @@ function KnowledgePage() {
   const [selectedKB, setSelectedKB] = useState<KnowledgeBase | null>(null);
 
   // 处理进度状态: kb_id -> { overall_progress, documents, processing_count }
-  const [processingProgress, setProcessingProgress] = useState<Record<string, {
-    overall_progress: number;
-    processing_count: number;
-    documents: Array<{
-      doc_id: string;
-      filename: string;
-      progress: number;
-      message: string;
-    }>;
-  }>>({});
+  const [processingProgress, setProcessingProgress] = useState<
+    Record<
+      string,
+      {
+        overall_progress: number;
+        processing_count: number;
+        documents: Array<{
+          doc_id: string;
+          filename: string;
+          progress: number;
+          message: string;
+        }>;
+      }
+    >
+  >({});
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchKnowledgeBases = async () => {
@@ -87,19 +92,23 @@ function KnowledgePage() {
   // 获取单个知识库的处理进度
   const fetchKBProgress = useCallback(async (kbId: string) => {
     try {
-      const data = await api.get(`/knowledge-bases/${kbId}/processing-progress`);
+      const data = await api.get(
+        `/knowledge-bases/${kbId}/processing-progress`,
+      );
       if (data.processing_count > 0) {
-        setProcessingProgress(prev => ({
+        setProcessingProgress((prev) => ({
           ...prev,
-          [kbId]: data
+          [kbId]: data,
         }));
       } else {
-        // 没有处理中的文档，清除该 KB 的进度状态
-        setProcessingProgress(prev => {
+        // 处理完成，清除进度状态并刷新知识库列表
+        setProcessingProgress((prev) => {
           const next = { ...prev };
           delete next[kbId];
           return next;
         });
+        // 刷新知识库列表以更新 processing_count
+        fetchKnowledgeBases();
       }
     } catch (error) {
       console.error(`Failed to fetch progress for KB ${kbId}:`, error);
@@ -108,11 +117,13 @@ function KnowledgePage() {
 
   // 轮询所有处理中的知识库进度
   const pollProcessingProgress = useCallback(async () => {
-    const processingKBs = knowledgeBases.filter(kb => (kb.processing_count ?? 0) > 0);
+    const processingKBs = knowledgeBases.filter(
+      (kb) => (kb.processing_count ?? 0) > 0,
+    );
     if (processingKBs.length === 0) return;
 
     // 并行获取所有处理中 KB 的进度
-    await Promise.all(processingKBs.map(kb => fetchKBProgress(kb.id)));
+    await Promise.all(processingKBs.map((kb) => fetchKBProgress(kb.id)));
   }, [knowledgeBases, fetchKBProgress]);
 
   useEffect(() => {
@@ -121,7 +132,9 @@ function KnowledgePage() {
 
   // 当知识库列表更新时，启动/停止轮询
   useEffect(() => {
-    const hasProcessing = knowledgeBases.some(kb => (kb.processing_count ?? 0) > 0);
+    const hasProcessing = knowledgeBases.some(
+      (kb) => (kb.processing_count ?? 0) > 0,
+    );
 
     if (hasProcessing && !pollingRef.current) {
       // 立即获取一次进度
@@ -362,13 +375,18 @@ function KnowledgePage() {
                       <Spin size="small" />
                       <Progress
                         size="small"
-                        percent={processingProgress[kb.id]?.overall_progress ?? 0}
+                        percent={
+                          processingProgress[kb.id]?.overall_progress ?? 0
+                        }
                         style={{ width: 60 }}
                         stroke="var(--semi-color-warning)"
                         showInfo={false}
                       />
                       <Text size="small" style={{ minWidth: 36 }}>
-                        {Math.round(processingProgress[kb.id]?.overall_progress ?? 0)}%
+                        {Math.round(
+                          processingProgress[kb.id]?.overall_progress ?? 0,
+                        )}
+                        %
                       </Text>
                     </div>
                   )}
